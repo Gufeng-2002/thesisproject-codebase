@@ -211,7 +211,12 @@ def _build_html(title: str, cells: list[dict[str, str]]) -> str:
   </style>
   <script>
     window.MathJax = {{
-      tex: {{ inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] }},
+      loader: {{ load: ['[tex]/extpfeil'] }},
+      tex: {{
+        packages: {{ '[+]': ['extpfeil'] }},
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']]
+      }},
       svg: {{ fontCache: 'global' }}
     }};
   </script>
@@ -228,6 +233,13 @@ def _build_html(title: str, cells: list[dict[str, str]]) -> str:
 
     function escapeHtml(source) {{
       return source.replace(/[&<>]/g, (char) => entityMap[char]);
+    }}
+
+    function normalizeMathTeX(source) {{
+      return source.replace(
+        /\\\\xleftrightarrow\\s*\\{{((?:[^{{}}]|\\{{[^{{}}]*\\}})*)\\}}/g,
+        (_, label) => '\\\\mathrel{{\\\\overset{{' + label + '}}{{\\\\longleftrightarrow}}}}'
+      );
     }}
 
     function protectMath(source) {{
@@ -268,7 +280,7 @@ def _build_html(title: str, cells: list[dict[str, str]]) -> str:
         }}
 
         const token = `@@MATH_${{mathSegments.length}}@@`;
-        mathSegments.push(source.slice(start, end + delimiter.length));
+        mathSegments.push(normalizeMathTeX(source.slice(start, end + delimiter.length)));
         protectedSource += token;
         index = end + delimiter.length;
       }}
