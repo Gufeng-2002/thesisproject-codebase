@@ -95,34 +95,45 @@ def _build_html(title: str, cells: list[dict[str, str]]) -> str:
       margin: 0;
       background: var(--bg);
       color: var(--ink);
-      font-family: Georgia, "Times New Roman", serif;
-      line-height: 1.72;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
     }}
 
     main {{
-      width: min(100%, 860px);
+      width: min(100%, 980px);
       margin: 0 auto;
-      padding: 32px 20px 56px;
+      padding: 36px 28px 60px;
     }}
 
     h1, h2, h3, h4, h5, h6 {{
       line-height: 1.25;
       margin: 1.1em 0 0.45em;
       color: #181614;
-      font-weight: 600;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      font-weight: 500;
     }}
 
     h1 {{
       margin-top: 0;
-      font-size: clamp(1.55rem, 3vw, 1.9rem);
+      font-size: clamp(1.8rem, 3vw, 2.2rem);
       letter-spacing: -0.01em;
     }}
 
-    h2 {{ font-size: clamp(1.32rem, 2.4vw, 1.55rem); }}
-    h3 {{ font-size: clamp(1.14rem, 2vw, 1.28rem); }}
+    h2 {{ font-size: clamp(1.5rem, 2.4vw, 1.75rem); }}
+    h3 {{ font-size: clamp(1.16rem, 2vw, 1.32rem); }}
     h4, h5, h6 {{ font-size: 1rem; }}
 
     p, li {{ font-size: 1rem; }}
+
+    p {{ margin: 0 0 1rem; }}
+
+    ul, ol {{
+      margin: 0 0 1rem;
+      padding-left: 2rem;
+    }}
+
+    li + li {{ margin-top: 0.35rem; }}
 
     a {{
       color: var(--accent);
@@ -137,7 +148,7 @@ def _build_html(title: str, cells: list[dict[str, str]]) -> str:
       padding: 0;
     }}
 
-    .cell + .cell {{ margin-top: 0.75rem; }}
+    .cell + .cell {{ margin-top: 0; }}
 
     .cell > :first-child {{ margin-top: 0; }}
     .cell > :last-child {{ margin-bottom: 0; }}
@@ -152,9 +163,9 @@ def _build_html(title: str, cells: list[dict[str, str]]) -> str:
     }}
 
     code {{
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-      background: none;
-      padding: 0;
+      font-family: Menlo, Consolas, "DejaVu Sans Mono", monospace;
+      background: #eeeeee;
+      padding: 1px 5px;
       border-radius: 0;
       font-size: 0.92em;
     }}
@@ -194,7 +205,7 @@ def _build_html(title: str, cells: list[dict[str, str]]) -> str:
     hr {{ border: 0; border-top: 1px solid var(--rule); }}
 
     @media (max-width: 700px) {{
-      main {{ padding: 24px 14px 44px; }}
+      main {{ padding: 24px 16px 44px; }}
       p, li {{ font-size: 1rem; }}
     }}
   </style>
