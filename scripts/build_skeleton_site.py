@@ -80,15 +80,14 @@ def _build_html(title: str, cells: list[dict[str, str]]) -> str:
   <style>
     :root {{
       color-scheme: light;
-      --bg: #f5f1e8;
-      --page: #fffdf8;
+      --bg: #ffffff;
+      --page: #ffffff;
       --ink: #22201c;
-      --muted: #6e675d;
-      --rule: #ddd4c6;
-      --soft: #efe8dc;
-      --code: #f3ede1;
-      --accent: #8b5e3c;
-      --shadow: rgba(34, 32, 28, 0.06);
+      --muted: #5f5f5f;
+      --rule: #d8d8d8;
+      --soft: #ffffff;
+      --code: #ffffff;
+      --accent: #22201c;
     }}
 
     * {{ box-sizing: border-box; }}
@@ -97,9 +96,7 @@ def _build_html(title: str, cells: list[dict[str, str]]) -> str:
 
     body {{
       margin: 0;
-      background:
-        radial-gradient(circle at top, rgba(255, 255, 255, 0.88), transparent 55%),
-        var(--bg);
+      background: var(--bg);
       color: var(--ink);
       font-family: Georgia, "Times New Roman", serif;
       line-height: 1.72;
@@ -151,7 +148,6 @@ def _build_html(title: str, cells: list[dict[str, str]]) -> str:
     .cell {{
       background: var(--page);
       border: 1px solid var(--rule);
-      box-shadow: 0 10px 30px -24px var(--shadow);
       padding: 28px 30px;
     }}
 
