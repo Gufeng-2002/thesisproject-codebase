@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import datetime, timezone
 from html import escape
 from pathlib import Path
 
@@ -67,7 +66,6 @@ def _infer_title(cells: list[dict[str, str]]) -> str:
 def _build_html(title: str, cells: list[dict[str, str]]) -> str:
     page_title = escape(title)
     notebook_name = escape(NOTEBOOK_PATH.name)
-    built_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     serialized_cells = json.dumps(cells, ensure_ascii=True)
 
     return f"""<!DOCTYPE html>
@@ -85,7 +83,6 @@ def _build_html(title: str, cells: list[dict[str, str]]) -> str:
       --ink: #22201c;
       --muted: #5f5f5f;
       --rule: #d8d8d8;
-      --soft: #ffffff;
       --code: #ffffff;
       --accent: #22201c;
     }}
@@ -103,33 +100,29 @@ def _build_html(title: str, cells: list[dict[str, str]]) -> str:
     }}
 
     main {{
-      width: min(100%, 960px);
+      width: min(100%, 860px);
       margin: 0 auto;
-      padding: 48px 20px 72px;
-    }}
-
-    header {{
-      margin-bottom: 28px;
-      padding-bottom: 18px;
-      border-bottom: 1px solid var(--rule);
+      padding: 32px 20px 56px;
     }}
 
     h1, h2, h3, h4, h5, h6 {{
       line-height: 1.25;
-      margin: 1.4em 0 0.55em;
+      margin: 1.1em 0 0.45em;
       color: #181614;
+      font-weight: 600;
     }}
 
     h1 {{
       margin-top: 0;
-      font-size: clamp(2rem, 4.6vw, 3.2rem);
-      letter-spacing: -0.03em;
+      font-size: clamp(1.55rem, 3vw, 1.9rem);
+      letter-spacing: -0.01em;
     }}
 
-    h2 {{ font-size: clamp(1.45rem, 2.8vw, 2rem); }}
-    h3 {{ font-size: clamp(1.15rem, 2.1vw, 1.45rem); }}
+    h2 {{ font-size: clamp(1.32rem, 2.4vw, 1.55rem); }}
+    h3 {{ font-size: clamp(1.14rem, 2vw, 1.28rem); }}
+    h4, h5, h6 {{ font-size: 1rem; }}
 
-    p, li {{ font-size: 1.05rem; }}
+    p, li {{ font-size: 1rem; }}
 
     a {{
       color: var(--accent);
@@ -137,40 +130,21 @@ def _build_html(title: str, cells: list[dict[str, str]]) -> str:
       text-underline-offset: 0.14em;
     }}
 
-    header p {{
-      margin: 0.35rem 0 0;
-      color: var(--muted);
-      font-size: 0.98rem;
-    }}
-
-    .notebook {{ display: grid; gap: 16px; }}
+    .notebook {{ display: block; }}
 
     .cell {{
       background: var(--page);
-      border: 1px solid var(--rule);
-      padding: 28px 30px;
+      padding: 0;
     }}
+
+    .cell + .cell {{ margin-top: 0.75rem; }}
 
     .cell > :first-child {{ margin-top: 0; }}
     .cell > :last-child {{ margin-bottom: 0; }}
 
-    .cell-label {{
-      display: inline-block;
-      margin-bottom: 12px;
-      padding: 3px 9px;
-      border: 1px solid var(--rule);
-      border-radius: 999px;
-      background: var(--soft);
-      color: var(--muted);
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-      font-size: 0.74rem;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-    }}
-
     pre {{
       overflow-x: auto;
-      padding: 16px 18px;
+      padding: 12px 0 12px 14px;
       border: 1px solid var(--rule);
       background: var(--code);
       font-size: 0.92rem;
@@ -179,9 +153,9 @@ def _build_html(title: str, cells: list[dict[str, str]]) -> str:
 
     code {{
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-      background: var(--code);
-      padding: 0.12em 0.34em;
-      border-radius: 0.2em;
+      background: none;
+      padding: 0;
+      border-radius: 0;
       font-size: 0.92em;
     }}
 
@@ -206,7 +180,7 @@ def _build_html(title: str, cells: list[dict[str, str]]) -> str:
       vertical-align: top;
     }}
 
-    th {{ background: var(--soft); }}
+    th {{ background: #ffffff; }}
 
     blockquote {{
       margin: 1.2rem 0;
@@ -220,8 +194,7 @@ def _build_html(title: str, cells: list[dict[str, str]]) -> str:
     hr {{ border: 0; border-top: 1px solid var(--rule); }}
 
     @media (max-width: 700px) {{
-      main {{ padding: 28px 14px 52px; }}
-      .cell {{ padding: 22px 18px; }}
+      main {{ padding: 24px 14px 44px; }}
       p, li {{ font-size: 1rem; }}
     }}
   </style>
@@ -236,11 +209,6 @@ def _build_html(title: str, cells: list[dict[str, str]]) -> str:
 </head>
 <body>
   <main>
-    <header>
-      <h1>{page_title}</h1>
-      <p>Plain website view generated from {notebook_name}.</p>
-      <p>Built {escape(built_at)} from the notebook source in this repository.</p>
-    </header>
     <div id=\"notebook\" class=\"notebook\"></div>
   </main>
   <script>
@@ -317,11 +285,6 @@ def _build_html(title: str, cells: list[dict[str, str]]) -> str:
       for (const cell of cells) {{
         const section = document.createElement('section');
         section.className = 'cell';
-
-        const label = document.createElement('div');
-        label.className = 'cell-label';
-        label.textContent = cell.cell_type === 'code' ? `code · ${{cell.language}}` : 'markdown';
-        section.appendChild(label);
 
         const body = document.createElement('div');
         if (cell.cell_type === 'markdown') {{
