@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chapter 3: Environmental Standardization - Zoobenthic Assessment</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script>
+    window.MathJax = {
+      loader: { load: ['[tex]/extpfeil'] },
+      tex: { packages: { '[+]': ['extpfeil'] }, inlineMath: [['$','$'],['\\(','\\)']], displayMath: [['$$','$$'],['\\[','\\]']] },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+  <script defer src="js/site.js"></script>
+</head>
+<body>
+  <div id="site-nav"></div>
+  <div class="page-layout">
+    <aside id="sidebar" class="sidebar"></aside>
+    <div class="sidebar-overlay"></div>
+    <main class="content-area">
+      <div id="notebook" class="notebook"></div>
+    </main>
+  </div>
+  <script>
+    window.PAGE_ID = "chapter3";
+    window.cells = [
+      {"cell_type": "markdown", "source": "# Chapter 3: Environmental Standardization of Zoobenthic Community Composition\n\nThis chapter **controls environmental confounding** in zoobenthic community composition through three frameworks. \n\nFirst, reference community types are identified from taxa composition at least-stressed sites. Second, their associated environmental conditions are modeled with a classifier. Third, the classifier is applied to all sites to assign each site to an **expected** reference community type based on its environmental descriptor space. \n\nThese steps indirectly partitions environmental space into (K) reference-community regions. Although this discretizes continuous environmental gradients, it improves interpretability with environmentally comparable groups."},
+      {"cell_type": "markdown", "source": "## Framework 1: Reference Community Typology from Least-Stressed Sites\n\nTo define naturally occurring community types without imposing environmental variables on the clustering process, an **unconstrained** taxa-based clustering was first applied to the least-stressed sites. The resulting reference community types were then used as **response** labels in an environmental classifier.\n\n**Question/Motivation**:\n\nIt risks collinearity and loss of interpretability to crunch the environmental covariates together with the stressors into a regression model. Instead, we want the bioassessment idea of comparing observed communities with\nexpected reference conditions with similar environmental conditions.\n\nReference communities can have distinct environmental conditions but **are not** defined by them, because contamination can be found in any environmental context. \nReference communities **should be** described by taxa compositions where contamination is least likely to have shaped community composition, which are the sites with lowest contamination levels.\n\n\n\n**Validation Method**:\n\nPick out the $m$ least-stressed sites based on ranking by the $f_{sum}()$ scores, and apply an unconstrained hierarchical clustering to their taxa matrix $\\mathbf{T_{ref}}$. Within the resulting dendrogram, supply statistical evidences to decide how many clusters to retain for cluster **robustness** and **distinctiveness**.\n\n\n\n\n**Inputs**:\n1. metadata: taxa data $\\mathbf{T}$\n2. artifacts:\n   - table: PC scores together with $f_{sum}()$ and $f_{max}()$ scores\n\n**Process**:\n1. transformations: none, $\\mathbf{T}$ was already in octave format\n2. bridging tools: rank-based subset selector\n3. modeling: Ward's hierarchical clustering, Node-wise ANOVA, ANOVA, pvclust bootstrap resampling\n4. interpreters: cluster dendrogram with $k$ finalized colors,\nnode-wise ANOVA results, ANOVA results, approximately unbiased (AU) p-values from pvclust\n\n\n\n**Outputs**:\n1. results:\n   - tables:\n      - Selected $k$ cluster labels for the $m$ least-stressed sites\n        - rows: $(\\text{Integrated Code}, \\text{Cluster Label})$ \n        - shape: $(m, 2)$\n      \n      - Node-wise ANOVA results for the first $k+1$ bifurcation nodes in the dendrogram\n        - rows: $(\\text{Splits}, \\text{left-size}, \\text{right-size}, \\text{Taxon}, \\text{Left mean},\n         \\text{Right mean}, \\text{F-statistic}, \\text{p-value}, \\text{FDR p-value})$\n        - shape: $((k+1) \\times n_{k_\\text{sig taxa}}, 9)$\n\n      - ANOVA results for the $k$ clusters\n        - rows: $(\\text{Taxon}, \\text{SS Between(df)}, \\text{SS Within(df)}, \\text{F-statistic}, \\text{p-value},\n          \\bar{x}_{C_1}, ..., \\bar{x}_{C_k})$\n        - shape: $(16, 5 + k)$\n      \n      - pvclust approximate unbiased (AU) p-values for $k$ clusters\n        - rows: $(\\text{Cluster Label}, \\text{AU p-value})$\n        - shape: $(k, 2)$\n   \n   - figures:\n      - Dendrogram of hierarchical clustering.\n        - x-axis: distance between clusters\n        - y-axis: site labels and leaves colored by $k$ cluster labels\n        - legend: colors for $k$ clusters, AU p-values for $k$ clusters\n      - Barplots of the 16 taxa concentrations across the $k$ clusters.\n        - x-axis: 16 ticks for 16 taxa, each tick holds $k$ bars for $k$ clusters\n        - y-axis: means of relative concentration $p_{jk}$ of each taxon $j$ in each cluster $k$\n        - legend: colors for $k$ clusters\n        - annotations: asterisks for significant taxa across the three clusters\n\n2. artifacts: \n   - table:\n     - Selected $k$ cluster labels for the $m$ least-stressed sites\n         - rows: $(\\text{Integrated Code}, \\text{Cluster Label})$ \n         - shape: $(m, 2)$"},
+      {"cell_type": "markdown", "source": "## Framework 2: Habitat-Based Classifier for Reference Community Membership\n\n<p style=\"color: var(--muted); font-style: italic; padding: 20px 0;\">This section is under development and will be expanded with the detailed Input–Process–Output specification for the environmental classifier that predicts reference community membership from habitat descriptors.</p>"},
+      {"cell_type": "markdown", "source": "## Framework 3: Environmental Standardization of All Sites\n\n<p style=\"color: var(--muted); font-style: italic; padding: 20px 0;\">This section is under development and will detail how the habitat-based classifier is applied to all 310 sites to assign expected reference community types, enabling within-type comparisons of observed vs. expected community composition.</p>"}
+    ];
+  </script>
+</body>
+</html>
