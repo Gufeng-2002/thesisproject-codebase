@@ -1,346 +1,198 @@
+"""Build multi-page research website from Skeleton.ipynb.
+
+Usage:
+    python scripts/build_skeleton_site.py
+
+After editing the notebook, run this script to regenerate all HTML pages
+in docs/. Then commit and push to update the GitHub Pages site.
+"""
+
 from __future__ import annotations
 
 import json
 import re
-from html import escape
+import shutil
 from pathlib import Path
-
 
 ROOT = Path(__file__).resolve().parents[1]
 NOTEBOOK_PATH = ROOT / "Skeleton.ipynb"
 OUTPUT_DIR = ROOT / "docs"
-OUTPUT_PATH = OUTPUT_DIR / "index.html"
-NOJEKYLL_PATH = OUTPUT_DIR / ".nojekyll"
+IMAGES_SRC = ROOT / "demos_images"
+IMAGES_DST = OUTPUT_DIR / "images"
+
+# ── Page definitions ──
+# Each page is defined by a regex that matches the H1 heading that starts it.
+# All cells from that H1 until the next H1 (or EOF) are included.
+# The "title" is the display title shown in the rendered page.
+
+PAGES = [
+    {
+        "id": "data-cleaning",
+        "file": "data-cleaning.html",
+        "title": "Chemical Data Cleaning",
+        "heading_pattern": r"^#\s+Summary of Chemical Data Cleaning",
+    },
+    {
+        "id": "data-preparation",
+        "file": "data-preparation.html",
+        "title": "Data Preparation",
+        "heading_pattern": r"^#\s+.*Data Preparation|^#\s+Done in Data Preparation",
+    },
+    {
+        "id": "workflow",
+        "file": "workflow.html",
+        "title": "Workflow Framework",
+        "heading_pattern": r"^#\s+Workflow Template|^#\s+Tool:\s*Recursive",
+    },
+    {
+        "id": "chapter2",
+        "file": "chapter2.html",
+        "title": "Chapter 2: Pollution Assessment",
+        "heading_pattern": r"^#\s+Chapter 2",
+    },
+    {
+        "id": "chapter3",
+        "file": "chapter3.html",
+        "title": "Chapter 3: Environmental Standardization",
+        "heading_pattern": r"^#\s+Chapter 3",
+    },
+]
 
 
 def _normalize_source(source: object) -> str:
     if isinstance(source, list):
-        pieces: list[str] = []
-        for item in source:
-            text = str(item)
-            pieces.append(text if text.endswith("\n") else f"{text}\n")
-        return "".join(pieces).rstrip()
+        return "".join(str(s) for s in source).rstrip()
     return str(source).rstrip()
 
 
-def _load_cells(notebook_path: Path) -> list[dict[str, str]]:
-    notebook = json.loads(notebook_path.read_text(encoding="utf-8"))
-    cells: list[dict[str, str]] = []
-
-    for cell in notebook.get("cells", []):
-        source = _normalize_source(cell.get("source", []))
-        if not source.strip():
+def _load_cells(notebook_path: Path) -> list[dict]:
+    nb = json.loads(notebook_path.read_text(encoding="utf-8"))
+    cells = []
+    for cell in nb.get("cells", []):
+        src = _normalize_source(cell.get("source", []))
+        ctype = str(cell.get("cell_type", "")).strip().lower()
+        if ctype not in ("markdown", "code"):
             continue
-
-        cell_type = str(cell.get("cell_type", "")).strip().lower()
-        if cell_type not in {"markdown", "code"}:
-            continue
-
-        language = ""
-        metadata = cell.get("metadata", {})
-        if isinstance(metadata, dict):
-            language = str(metadata.get("language", "")).strip().lower()
-
-        cells.append(
-            {
-                "cell_type": cell_type,
-                "language": language or "text",
-                "source": source,
-            }
-        )
-
+        cells.append({"cell_type": ctype, "source": src})
     return cells
 
 
-def _infer_title(cells: list[dict[str, str]]) -> str:
-    heading_pattern = re.compile(r"^#\s+(.+?)\s*$", re.MULTILINE)
+def _get_first_line(source: str) -> str:
+    return source.split("\n")[0].strip() if source.strip() else ""
+
+
+def _split_cells_into_pages(cells: list[dict]) -> dict[str, list[dict]]:
+    """Split notebook cells into page groups based on H1 heading patterns."""
+    compiled = [(p["id"], re.compile(p["heading_pattern"])) for p in PAGES]
+
+    page_cells: dict[str, list[dict]] = {p["id"]: [] for p in PAGES}
+    current_page: str | None = None
+
     for cell in cells:
-        if cell["cell_type"] != "markdown":
-            continue
-        match = heading_pattern.search(cell["source"])
-        if match:
-            return match.group(1)
-    return NOTEBOOK_PATH.stem
+        first_line = _get_first_line(cell["source"])
+
+        for page_id, pattern in compiled:
+            if pattern.match(first_line):
+                current_page = page_id
+                break
+
+        if current_page is not None and cell["source"].strip():
+            page_cells[current_page].append(cell)
+
+    return page_cells
 
 
-def _build_html(title: str, cells: list[dict[str, str]]) -> str:
-    page_title = escape(title)
-    notebook_name = escape(NOTEBOOK_PATH.name)
-    serialized_cells = json.dumps(cells, ensure_ascii=True)
+def _rewrite_image_paths(source: str) -> str:
+    return source.replace("demos_images/", "images/")
+
+
+def _build_content_page(page_def: dict, cells: list[dict]) -> str:
+    page_id = page_def["id"]
+    title = page_def["title"]
+
+    processed_cells = []
+    for cell in cells:
+        processed_cells.append({
+            "cell_type": cell["cell_type"],
+            "source": _rewrite_image_paths(cell["source"]),
+        })
+
+    serialized = json.dumps(processed_cells, ensure_ascii=True)
 
     return f"""<!DOCTYPE html>
-<html lang=\"en\">
+<html lang="en">
 <head>
-  <meta charset=\"utf-8\">
-  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
-  <title>{page_title}</title>
-  <meta name=\"description\" content=\"Static website generated from {notebook_name}.\">
-  <style>
-    :root {{
-      color-scheme: light;
-      --bg: #ffffff;
-      --page: #ffffff;
-      --ink: #22201c;
-      --muted: #5f5f5f;
-      --rule: #d8d8d8;
-      --code: #ffffff;
-      --accent: #22201c;
-    }}
-
-    * {{ box-sizing: border-box; }}
-
-    html {{ scroll-behavior: smooth; }}
-
-    body {{
-      margin: 0;
-      background: var(--bg);
-      color: var(--ink);
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-      font-size: 14px;
-      line-height: 1.6;
-    }}
-
-    main {{
-      width: min(100%, 980px);
-      margin: 0 auto;
-      padding: 36px 28px 60px;
-    }}
-
-    h1, h2, h3, h4, h5, h6 {{
-      line-height: 1.25;
-      margin: 1.1em 0 0.45em;
-      color: #181614;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-      font-weight: 500;
-    }}
-
-    h1 {{
-      margin-top: 0;
-      font-size: clamp(1.8rem, 3vw, 2.2rem);
-      letter-spacing: -0.01em;
-    }}
-
-    h2 {{ font-size: clamp(1.5rem, 2.4vw, 1.75rem); }}
-    h3 {{ font-size: clamp(1.16rem, 2vw, 1.32rem); }}
-    h4, h5, h6 {{ font-size: 1rem; }}
-
-    p, li {{ font-size: 1rem; }}
-
-    p {{ margin: 0 0 1rem; }}
-
-    ul, ol {{
-      margin: 0 0 1rem;
-      padding-left: 2rem;
-    }}
-
-    li + li {{ margin-top: 0.35rem; }}
-
-    a {{
-      color: var(--accent);
-      text-decoration-thickness: 1px;
-      text-underline-offset: 0.14em;
-    }}
-
-    .notebook {{ display: block; }}
-
-    .cell {{
-      background: var(--page);
-      padding: 0;
-    }}
-
-    .cell + .cell {{ margin-top: 0; }}
-
-    .cell > :first-child {{ margin-top: 0; }}
-    .cell > :last-child {{ margin-bottom: 0; }}
-
-    pre {{
-      overflow-x: auto;
-      padding: 12px 0 12px 14px;
-      border: 1px solid var(--rule);
-      background: var(--code);
-      font-size: 0.92rem;
-      line-height: 1.55;
-    }}
-
-    code {{
-      font-family: Menlo, Consolas, "DejaVu Sans Mono", monospace;
-      background: #eeeeee;
-      padding: 1px 5px;
-      border-radius: 0;
-      font-size: 0.92em;
-    }}
-
-    pre code {{
-      background: transparent;
-      padding: 0;
-      border-radius: 0;
-    }}
-
-    table {{
-      width: 100%;
-      border-collapse: collapse;
-      display: block;
-      overflow-x: auto;
-      margin: 1.25rem 0;
-    }}
-
-    th, td {{
-      border: 1px solid var(--rule);
-      padding: 10px 12px;
-      text-align: left;
-      vertical-align: top;
-    }}
-
-    th {{ background: #ffffff; }}
-
-    blockquote {{
-      margin: 1.2rem 0;
-      padding-left: 1rem;
-      border-left: 3px solid var(--rule);
-      color: var(--muted);
-    }}
-
-    img {{ max-width: 100%; height: auto; }}
-
-    hr {{ border: 0; border-top: 1px solid var(--rule); }}
-
-    @media (max-width: 700px) {{
-      main {{ padding: 24px 16px 44px; }}
-      p, li {{ font-size: 1rem; }}
-    }}
-  </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{title} - Zoobenthic Assessment</title>
+  <link rel="stylesheet" href="css/style.css">
   <script>
     window.MathJax = {{
       loader: {{ load: ['[tex]/extpfeil'] }},
-      tex: {{
-        packages: {{ '[+]': ['extpfeil'] }},
-        inlineMath: [['$', '$'], ['\\(', '\\)']],
-        displayMath: [['$$', '$$'], ['\\[', '\\]']]
-      }},
+      tex: {{ packages: {{ '[+]': ['extpfeil'] }}, inlineMath: [['$','$'],['\\\\(','\\\\)']], displayMath: [['$$','$$'],['\\\\[','\\\\]']] }},
       svg: {{ fontCache: 'global' }}
     }};
   </script>
-  <script defer src=\"https://cdn.jsdelivr.net/npm/marked/marked.min.js\"></script>
-  <script defer src=\"https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js\"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+  <script defer src="js/site.js"></script>
 </head>
 <body>
-  <main>
-    <div id=\"notebook\" class=\"notebook\"></div>
-  </main>
+  <div id="site-nav"></div>
+  <div class="page-layout">
+    <aside id="sidebar" class="sidebar"></aside>
+    <div class="sidebar-overlay"></div>
+    <main class="content-area">
+      <div id="notebook" class="notebook"></div>
+    </main>
+  </div>
   <script>
-    const cells = {serialized_cells};
-    const entityMap = {{ '&': '&amp;', '<': '&lt;', '>': '&gt;' }};
-
-    function escapeHtml(source) {{
-      return source.replace(/[&<>]/g, (char) => entityMap[char]);
-    }}
-
-    function normalizeMathTeX(source) {{
-      return source.replace(
-        /\\\\xleftrightarrow\\s*\\{{((?:[^{{}}]|\\{{[^{{}}]*\\}})*)\\}}/g,
-        (_, label) => '\\\\mathrel{{\\\\overset{{' + label + '}}{{\\\\longleftrightarrow}}}}'
-      );
-    }}
-
-    function protectMath(source) {{
-      const mathSegments = [];
-      let protectedSource = '';
-
-      for (let index = 0; index < source.length;) {{
-        if (source[index] !== '$') {{
-          protectedSource += source[index];
-          index += 1;
-          continue;
-        }}
-
-        const isBlock = source[index + 1] === '$';
-        const delimiter = isBlock ? '$$' : '$';
-        const start = index;
-        let cursor = index + delimiter.length;
-        let end = -1;
-
-        while (cursor < source.length) {{
-          if (source[cursor] === '\\\\') {{
-            cursor += 2;
-            continue;
-          }}
-
-          if (isBlock ? source.startsWith('$$', cursor) : source[cursor] === '$') {{
-            end = cursor;
-            break;
-          }}
-
-          cursor += 1;
-        }}
-
-        if (end === -1) {{
-          protectedSource += source[start];
-          index = start + 1;
-          continue;
-        }}
-
-        const token = `@@MATH_${{mathSegments.length}}@@`;
-        mathSegments.push(normalizeMathTeX(source.slice(start, end + delimiter.length)));
-        protectedSource += token;
-        index = end + delimiter.length;
-      }}
-
-      return {{ protectedSource, mathSegments }};
-    }}
-
-    function restoreMath(html, mathSegments) {{
-      return html.replace(/@@MATH_(\\d+)@@/g, (_, index) => mathSegments[Number(index)] ?? '');
-    }}
-
-    function renderMarkdown(source) {{
-      const {{ protectedSource, mathSegments }} = protectMath(source);
-      if (!window.marked) {{
-        return `<pre>${{escapeHtml(source)}}</pre>`;
-      }}
-      const rendered = window.marked.parse(protectedSource, {{ gfm: true, breaks: false, mangle: false, headerIds: true }});
-      return restoreMath(rendered, mathSegments);
-    }}
-
-    function renderNotebook() {{
-      const container = document.getElementById('notebook');
-      container.replaceChildren();
-
-      for (const cell of cells) {{
-        const section = document.createElement('section');
-        section.className = 'cell';
-
-        const body = document.createElement('div');
-        if (cell.cell_type === 'markdown') {{
-          body.innerHTML = renderMarkdown(cell.source);
-        }} else {{
-          body.innerHTML = `<pre><code>${{escapeHtml(cell.source)}}</code></pre>`;
-        }}
-        section.appendChild(body);
-        container.appendChild(section);
-      }}
-
-      if (window.MathJax && window.MathJax.typesetPromise) {{
-        window.MathJax.typesetPromise();
-      }}
-    }}
-
-    window.addEventListener('DOMContentLoaded', renderNotebook);
+    window.PAGE_ID = "{page_id}";
+    window.cells = {serialized};
   </script>
 </body>
 </html>
 """
 
 
+def _copy_images() -> int:
+    IMAGES_DST.mkdir(parents=True, exist_ok=True)
+    count = 0
+    if IMAGES_SRC.exists():
+        for img in IMAGES_SRC.glob("*.png"):
+            shutil.copy2(img, IMAGES_DST / img.name)
+            count += 1
+        for img in IMAGES_SRC.glob("*.jpg"):
+            shutil.copy2(img, IMAGES_DST / img.name)
+            count += 1
+    return count
+
+
 def main() -> None:
     cells = _load_cells(NOTEBOOK_PATH)
-    title = _infer_title(cells)
+    print(f"Loaded {len(cells)} cells from {NOTEBOOK_PATH.name}")
+
+    page_cells = _split_cells_into_pages(cells)
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    OUTPUT_PATH.write_text(_build_html(title, cells), encoding="utf-8")
-    NOJEKYLL_PATH.write_text("", encoding="utf-8")
 
-    print(f"Loaded cells: {len(cells)}")
-    print(f"Wrote website: {OUTPUT_PATH}")
+    for page_def in PAGES:
+        page_id = page_def["id"]
+        pcells = page_cells[page_id]
+        if not pcells:
+            print(f"  WARNING: No cells matched for {page_def['file']}")
+            continue
+
+        html = _build_content_page(page_def, pcells)
+        out_path = OUTPUT_DIR / page_def["file"]
+        out_path.write_text(html, encoding="utf-8")
+        print(f"  {page_def['file']:30s}  ({len(pcells)} cells)")
+
+    n_imgs = _copy_images()
+    print(f"  Copied {n_imgs} images to docs/images/")
+
+    print(f"\nDone. Landing page (index.html) is NOT overwritten — edit it manually.")
+    print(f"To publish: git add docs/ && git commit && git push")
 
 
 if __name__ == "__main__":
