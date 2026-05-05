@@ -7,6 +7,7 @@ const NAV_PAGES = [
   { id: "workflow",         href: "workflow.html",          label: "Workflow" },
   { id: "chapter2",         href: "chapter2.html",         label: "Ch.2: Pollution" },
   { id: "chapter3",         href: "chapter3.html",         label: "Ch.3: Standardization" },
+  { id: "chapter4",         href: "chapter4.html",         label: "Ch.4: ZCI Ordination" },
 ];
 
 // ─── Navigation injection ───

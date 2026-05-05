@@ -56,6 +56,12 @@ PAGES = [
         "title": "Chapter 3: Environmental Standardization",
         "heading_pattern": r"^#\s+Chapter 3",
     },
+    {
+        "id": "chapter4",
+        "file": "chapter4.html",
+        "title": "Chapter 4: ZCI of Bray-Curtis Ordination on Community Composition",
+        "heading_pattern": r"^#\s+Chapter 4",
+    },
 ]
 
 
@@ -91,10 +97,15 @@ def _split_cells_into_pages(cells: list[dict]) -> dict[str, list[dict]]:
     for cell in cells:
         first_line = _get_first_line(cell["source"])
 
+        matched_page = False
         for page_id, pattern in compiled:
             if pattern.match(first_line):
                 current_page = page_id
+                matched_page = True
                 break
+
+        if first_line.startswith("# ") and not matched_page:
+            current_page = None
 
         if current_page is not None and cell["source"].strip():
             page_cells[current_page].append(cell)
