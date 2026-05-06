@@ -15,7 +15,9 @@ import shutil
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-SKELETON_NOTEBOOK_PATH = ROOT / "Skeleton.ipynb"
+DATA_PREPARATION_NOTEBOOK_PATH = ROOT / "DataPreparation.ipynb"
+ARCHITECTURE_NOTEBOOK_PATH = ROOT / "Architecture.ipynb"
+CHAPTERS_NOTEBOOK_PATH = ROOT / "Chapters.ipynb"
 HOMEPAGE_NOTEBOOK_PATH = ROOT / "Homepage.ipynb"
 OUTPUT_DIR = ROOT / "docs"
 IMAGES_SRC = ROOT / "demos_images"
@@ -32,36 +34,42 @@ PAGES = [
         "file": "data-cleaning.html",
         "title": "Chemical Data Cleaning",
         "heading_pattern": r"^#\s+Summary of Chemical Data Cleaning",
+        "notebook_path": DATA_PREPARATION_NOTEBOOK_PATH,
     },
     {
         "id": "data-preparation",
         "file": "data-preparation.html",
         "title": "Data Preparation",
         "heading_pattern": r"^#\s+.*Data Preparation|^#\s+Done in Data Preparation",
+        "notebook_path": DATA_PREPARATION_NOTEBOOK_PATH,
     },
     {
         "id": "workflow",
         "file": "workflow.html",
         "title": "Workflow Framework",
         "heading_pattern": r"^#\s+Workflow Template|^#\s+Tool:\s*Recursive",
+        "notebook_path": ARCHITECTURE_NOTEBOOK_PATH,
     },
     {
         "id": "chapter2",
         "file": "chapter2.html",
         "title": "Chapter 2: Pollution Assessment",
         "heading_pattern": r"^#\s+Chapter 2",
+        "notebook_path": CHAPTERS_NOTEBOOK_PATH,
     },
     {
         "id": "chapter3",
         "file": "chapter3.html",
         "title": "Chapter 3: Environmental Standardization",
         "heading_pattern": r"^#\s+Chapter 3",
+        "notebook_path": CHAPTERS_NOTEBOOK_PATH,
     },
     {
         "id": "chapter4",
         "file": "chapter4.html",
         "title": "Chapter 4: ZCI of Bray-Curtis Ordination on Community Composition",
         "heading_pattern": r"^#\s+Chapter 4",
+        "notebook_path": CHAPTERS_NOTEBOOK_PATH,
     },
 ]
 
@@ -217,10 +225,16 @@ def main() -> None:
         standalone_cells[page_def["id"]] = cells
         print(f"Loaded {len(cells)} cells from {notebook_path.name}")
 
-    cells = _load_cells(SKELETON_NOTEBOOK_PATH)
-    print(f"Loaded {len(cells)} cells from {SKELETON_NOTEBOOK_PATH.name}")
+    source_cells: dict[Path, list[dict]] = {}
+    for notebook_path in sorted({p["notebook_path"] for p in PAGES}):
+        cells = _load_cells(notebook_path)
+        source_cells[notebook_path] = cells
+        print(f"Loaded {len(cells)} cells from {notebook_path.name}")
 
-    page_cells = _split_cells_into_pages(cells)
+    cells_by_notebook = {
+        notebook_path: _split_cells_into_pages(cells)
+        for notebook_path, cells in source_cells.items()
+    }
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -237,7 +251,7 @@ def main() -> None:
 
     for page_def in PAGES:
         page_id = page_def["id"]
-        pcells = page_cells[page_id]
+        pcells = cells_by_notebook[page_def["notebook_path"]][page_id]
         if not pcells:
             print(f"  WARNING: No cells matched for {page_def['file']}")
             continue
