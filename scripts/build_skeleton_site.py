@@ -1,10 +1,10 @@
-"""Build multi-page research website from Skeleton.ipynb.
+"""Build multi-notebook research website.
 
 Usage:
     python scripts/build_skeleton_site.py
 
-After editing the notebook, run this script to regenerate all HTML pages
-in docs/. Then commit and push to update the GitHub Pages site.
+After editing the source notebooks, run this script to regenerate all HTML
+pages in docs/. Then commit and push to update the GitHub Pages site.
 """
 
 from __future__ import annotations
@@ -15,7 +15,8 @@ import shutil
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-NOTEBOOK_PATH = ROOT / "Skeleton.ipynb"
+SKELETON_NOTEBOOK_PATH = ROOT / "Skeleton.ipynb"
+HOMEPAGE_NOTEBOOK_PATH = ROOT / "Homepage.ipynb"
 OUTPUT_DIR = ROOT / "docs"
 IMAGES_SRC = ROOT / "demos_images"
 IMAGES_DST = OUTPUT_DIR / "images"
@@ -61,6 +62,18 @@ PAGES = [
         "file": "chapter4.html",
         "title": "Chapter 4: ZCI of Bray-Curtis Ordination on Community Composition",
         "heading_pattern": r"^#\s+Chapter 4",
+    },
+]
+
+STANDALONE_NOTEBOOK_PAGES = [
+    {
+        "id": "home",
+        "file": "index.html",
+        "title": "Zoobenthic Community Assessment",
+        "browser_title": "Zoobenthic Community Assessment - Research Project",
+        "description": "Research website for zoobenthic community-condition assessment using sediment chemistry and environmental descriptors.",
+        "notebook_path": HOMEPAGE_NOTEBOOK_PATH,
+        "layout": "home",
     },
 ]
 
@@ -120,6 +133,9 @@ def _rewrite_image_paths(source: str) -> str:
 def _build_content_page(page_def: dict, cells: list[dict]) -> str:
     page_id = page_def["id"]
     title = page_def["title"]
+    browser_title = page_def.get("browser_title", f"{title} - Zoobenthic Assessment")
+    description = page_def.get("description")
+    layout = page_def.get("layout", "content")
 
     processed_cells = []
     for cell in cells:
@@ -129,13 +145,29 @@ def _build_content_page(page_def: dict, cells: list[dict]) -> str:
         })
 
     serialized = json.dumps(processed_cells, ensure_ascii=True)
+    meta_description = (
+        f'\n  <meta name="description" content="{description}">'
+        if description
+        else ""
+    )
+
+    if layout == "home":
+        page_layout = "page-layout no-sidebar"
+        main_class = "content-area landing-content"
+        sidebar_markup = ""
+    else:
+        page_layout = "page-layout"
+        main_class = "content-area"
+        sidebar_markup = """    <aside id="sidebar" class="sidebar"></aside>
+    <div class="sidebar-overlay"></div>
+"""
 
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{title} - Zoobenthic Assessment</title>
+  <title>{browser_title}</title>{meta_description}
   <link rel="stylesheet" href="css/style.css">
   <script>
     window.MathJax = {{
@@ -150,10 +182,8 @@ def _build_content_page(page_def: dict, cells: list[dict]) -> str:
 </head>
 <body>
   <div id="site-nav"></div>
-  <div class="page-layout">
-    <aside id="sidebar" class="sidebar"></aside>
-    <div class="sidebar-overlay"></div>
-    <main class="content-area">
+  <div class="{page_layout}">
+{sidebar_markup}    <main class="{main_class}">
       <div id="notebook" class="notebook"></div>
     </main>
   </div>
@@ -180,12 +210,30 @@ def _copy_images() -> int:
 
 
 def main() -> None:
-    cells = _load_cells(NOTEBOOK_PATH)
-    print(f"Loaded {len(cells)} cells from {NOTEBOOK_PATH.name}")
+    standalone_cells: dict[str, list[dict]] = {}
+    for page_def in STANDALONE_NOTEBOOK_PAGES:
+        notebook_path = page_def["notebook_path"]
+        cells = _load_cells(notebook_path)
+        standalone_cells[page_def["id"]] = cells
+        print(f"Loaded {len(cells)} cells from {notebook_path.name}")
+
+    cells = _load_cells(SKELETON_NOTEBOOK_PATH)
+    print(f"Loaded {len(cells)} cells from {SKELETON_NOTEBOOK_PATH.name}")
 
     page_cells = _split_cells_into_pages(cells)
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+    for page_def in STANDALONE_NOTEBOOK_PAGES:
+        pcells = standalone_cells[page_def["id"]]
+        if not pcells:
+            print(f"  WARNING: No cells matched for {page_def['file']}")
+            continue
+
+        html = _build_content_page(page_def, pcells)
+        out_path = OUTPUT_DIR / page_def["file"]
+        out_path.write_text(html, encoding="utf-8")
+        print(f"  {page_def['file']:30s}  ({len(pcells)} cells)")
 
     for page_def in PAGES:
         page_id = page_def["id"]
@@ -202,7 +250,7 @@ def main() -> None:
     n_imgs = _copy_images()
     print(f"  Copied {n_imgs} images to docs/images/")
 
-    print(f"\nDone. Landing page (index.html) is NOT overwritten — edit it manually.")
+    print(f"\nDone. Landing page (index.html) is generated from {HOMEPAGE_NOTEBOOK_PATH.name}.")
     print(f"To publish: git add docs/ && git commit && git push")
 
 
