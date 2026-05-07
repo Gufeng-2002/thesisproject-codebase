@@ -1,23 +1,52 @@
 // ─── Navigation configuration ───
-// To add a new page: add one entry here and create the HTML file.
-const NAV_PAGES = [
-  { id: "home",             href: "index.html",            label: "Home" },
-  { id: "data-cleaning",    href: "data-cleaning.html",    label: "Data Cleaning" },
-  { id: "data-preparation", href: "data-preparation.html", label: "Data Preparation" },
-  { id: "architecture",     href: "architecture.html",      label: "Architecture" },
-  { id: "chapter2",         href: "chapter2.html",         label: "Ch.2: Pollution" },
-  { id: "chapter3",         href: "chapter3.html",         label: "Ch.3: Standardization" },
-  { id: "chapter4",         href: "chapter4.html",         label: "Ch.4: ZCI Ordination" },
+// Nav is organized into sections with optional dropdown sub-pages.
+const NAV_SECTIONS = [
+  { id: "home", href: "index.html", label: "Home" },
+  {
+    id: "data-preparation-group",
+    label: "Data Preparation",
+    children: [
+      { id: "data-cleaning",    href: "data-cleaning.html",    label: "Data Cleaning" },
+      { id: "data-preparation", href: "data-preparation.html", label: "Data Preparation" },
+    ],
+  },
+  { id: "architecture", href: "architecture.html", label: "Architecture" },
+  {
+    id: "chapters-group",
+    label: "Chapters",
+    children: [
+      { id: "chapter2", href: "chapter2.html", label: "Ch.2: Pollution" },
+      { id: "chapter3", href: "chapter3.html", label: "Ch.3: Standardization" },
+      { id: "chapter4", href: "chapter4.html", label: "Ch.4: ZCI Ordination" },
+    ],
+  },
+  { id: "records", href: "records.html", label: "Records" },
 ];
+
+function _isActiveSection(section, pageId) {
+  if (section.id === pageId) return true;
+  if (section.children) return section.children.some(c => c.id === pageId);
+  return false;
+}
 
 // ─── Navigation injection ───
 function injectNav(pageId) {
   const target = document.getElementById("site-nav");
   if (!target) return;
 
-  const links = NAV_PAGES.map(p =>
-    `<a href="${p.href}" class="${p.id === pageId ? 'active' : ''}">${p.label}</a>`
-  ).join("");
+  const items = NAV_SECTIONS.map(s => {
+    if (!s.children) {
+      return `<a href="${s.href}" class="nav-link${s.id === pageId ? ' active' : ''}">${s.label}</a>`;
+    }
+    const active = _isActiveSection(s, pageId);
+    const sub = s.children.map(c =>
+      `<a href="${c.href}" class="dropdown-item${c.id === pageId ? ' active' : ''}">${c.label}</a>`
+    ).join("");
+    return `<div class="nav-dropdown${active ? ' active' : ''}">
+      <button class="nav-link dropdown-toggle">${s.label}<svg class="chevron" width="10" height="10" viewBox="0 0 10 10"><path d="M2.5 3.5l2.5 3 2.5-3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <div class="dropdown-menu">${sub}</div>
+    </div>`;
+  }).join("");
 
   target.innerHTML = `
     <header class="site-header">
@@ -25,8 +54,26 @@ function injectNav(pageId) {
       <button class="hamburger" aria-label="Menu" onclick="toggleMobileNav()">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
-      <nav>${links}</nav>
+      <nav>${items}</nav>
     </header>`;
+
+  // Close dropdowns when clicking elsewhere
+  document.addEventListener("click", e => {
+    if (!e.target.closest(".nav-dropdown")) {
+      document.querySelectorAll(".nav-dropdown.open").forEach(d => d.classList.remove("open"));
+    }
+  });
+
+  // Toggle dropdowns on click
+  document.querySelectorAll(".dropdown-toggle").forEach(btn => {
+    btn.addEventListener("click", e => {
+      e.stopPropagation();
+      const dd = btn.closest(".nav-dropdown");
+      const wasOpen = dd.classList.contains("open");
+      document.querySelectorAll(".nav-dropdown.open").forEach(d => d.classList.remove("open"));
+      if (!wasOpen) dd.classList.add("open");
+    });
+  });
 }
 
 function toggleMobileNav() {

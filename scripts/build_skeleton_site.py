@@ -9,6 +9,7 @@ pages in docs/. Then commit and push to update the GitHub Pages site.
 
 from __future__ import annotations
 
+import calendar
 import json
 import re
 import shutil
@@ -19,9 +20,13 @@ DATA_PREPARATION_NOTEBOOK_PATH = ROOT / "DataPreparation.ipynb"
 ARCHITECTURE_NOTEBOOK_PATH = ROOT / "Architecture.ipynb"
 CHAPTERS_NOTEBOOK_PATH = ROOT / "Chapters.ipynb"
 HOMEPAGE_NOTEBOOK_PATH = ROOT / "Homepage.ipynb"
+RECORDS_NOTEBOOK_PATH = ROOT / "Records.ipynb"
 OUTPUT_DIR = ROOT / "docs"
 IMAGES_SRC = ROOT / "demos_images"
 IMAGES_DST = OUTPUT_DIR / "images"
+MEETING_NOTES_DIR = OUTPUT_DIR / "meeting-notes"
+
+MONTH_NUM_TO_FULL = {num: name for num, name in enumerate(calendar.month_name) if num}
 
 # ── Page definitions ──
 # Each page is defined by a regex that matches the H1 heading that starts it.
@@ -217,6 +222,97 @@ def _copy_images() -> int:
     return count
 
 
+# ── Records page (meeting notes) ──
+
+def _scan_local_meeting_notes() -> dict[int, list[dict]]:
+    """Scan docs/meeting-notes/ for PDFs named YYYY_MM_DD_meeting_notes.pdf.
+
+    Returns entries sorted descending (most recent first) within each year.
+    """
+    if not MEETING_NOTES_DIR.exists():
+        return {}
+    by_year: dict[int, list[dict]] = {}
+    for pdf in MEETING_NOTES_DIR.glob("*_meeting_notes.pdf"):
+        m = re.match(r"(\d{4})_(\d{2})_(\d{2})_meeting_notes\.pdf", pdf.name)
+        if not m:
+            continue
+        year, month, day = int(m.group(1)), int(m.group(2)), int(m.group(3))
+        month_name = MONTH_NUM_TO_FULL.get(month, f"Month{month}")
+        by_year.setdefault(year, []).append({
+            "filename": pdf.name,
+            "display": f"{month_name} {day} Meeting Notes",
+            "sort_key": (month, day),
+        })
+    for year in by_year:
+        by_year[year].sort(key=lambda e: e["sort_key"], reverse=True)
+    return by_year
+
+
+def _build_records_page(by_year: dict[int, list[dict]],
+                        notebook_cells: list[dict]) -> str:
+    """Generate the Records HTML page with notebook content + collapsible year sections."""
+    cells_json = json.dumps(
+        [{"cell_type": c["cell_type"],
+          "source": _rewrite_image_paths(c["source"])}
+         for c in notebook_cells],
+        ensure_ascii=True,
+    )
+
+    year_sections = ""
+    for year in sorted(by_year.keys(), reverse=True):
+        entries = by_year[year]
+        is_open = "open" if year >= 2026 else ""
+        items_html = ""
+        for e in entries:
+            href = f"meeting-notes/{e['filename']}"
+            items_html += (
+                f'        <li class="record-item">'
+                f'<a href="{href}" target="_blank" rel="noopener">'
+                f'<span class="record-icon"></span>{e["display"]}'
+                f'</a></li>\n'
+            )
+        year_sections += f"""    <details class="year-group" {is_open}>
+      <summary class="year-heading">{year}</summary>
+      <ul class="record-list">
+{items_html}      </ul>
+    </details>
+"""
+
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Records - Zoobenthic Assessment</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script>
+    window.MathJax = {{
+      loader: {{ load: ['[tex]/extpfeil'] }},
+      tex: {{ packages: {{ '[+]': ['extpfeil'] }}, inlineMath: [['$','$'],['\\\\(','\\\\)']], displayMath: [['$$','$$'],['\\\\[','\\\\]']] }},
+      svg: {{ fontCache: 'global' }}
+    }};
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+  <script defer src="js/site.js"></script>
+</head>
+<body>
+  <div id="site-nav"></div>
+  <div class="page-layout no-sidebar">
+    <main class="content-area records-page">
+      <div id="notebook" class="notebook"></div>
+{year_sections}
+    </main>
+  </div>
+  <script>
+    window.PAGE_ID = "records";
+    window.cells = {cells_json};
+  </script>
+</body>
+</html>
+"""
+
+
 def main() -> None:
     standalone_cells: dict[str, list[dict]] = {}
     for page_def in STANDALONE_NOTEBOOK_PAGES:
@@ -264,8 +360,24 @@ def main() -> None:
     n_imgs = _copy_images()
     print(f"  Copied {n_imgs} images to docs/images/")
 
+    # ── Records page ──
+    records_cells: list[dict] = []
+    if RECORDS_NOTEBOOK_PATH.exists():
+        records_cells = _load_cells(RECORDS_NOTEBOOK_PATH)
+        print(f"Loaded {len(records_cells)} cells from {RECORDS_NOTEBOOK_PATH.name}")
+
+    by_year = _scan_local_meeting_notes()
+    if by_year or records_cells:
+        html = _build_records_page(by_year, records_cells)
+        (OUTPUT_DIR / "records.html").write_text(html, encoding="utf-8")
+        total = sum(len(v) for v in by_year.values())
+        years = ", ".join(str(y) for y in sorted(by_year.keys()))
+        print(f"  records.html                    ({total} meeting notes, years: {years})")
+    else:
+        print("  WARNING: No meeting notes found in docs/meeting-notes/, skipping records.html")
+
     print(f"\nDone. Landing page (index.html) is generated from {HOMEPAGE_NOTEBOOK_PATH.name}.")
-    print(f"To publish: git add docs/ && git commit && git push")
+    print("To publish: git add docs/ && git commit && git push")
 
 
 if __name__ == "__main__":
