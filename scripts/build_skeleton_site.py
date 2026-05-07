@@ -24,9 +24,53 @@ RECORDS_NOTEBOOK_PATH = ROOT / "Records.ipynb"
 OUTPUT_DIR = ROOT / "docs"
 IMAGES_SRC = ROOT / "demos_images"
 IMAGES_DST = OUTPUT_DIR / "images"
-MEETING_NOTES_DIR = OUTPUT_DIR / "meeting-notes"
+RECORDS_DIR = OUTPUT_DIR / "Records"
 
 MONTH_NUM_TO_FULL = {num: name for num, name in enumerate(calendar.month_name) if num}
+
+PDF_SUMMARIES: dict[str, str] = {
+    "2025_03_21_meeting_notes.pdf": "Thesis committee formed; proposal framework established",
+    "2025_05_05_meeting_notes.pdf": "Thesis framework: breakpoint regression analysis discussed",
+    "2025_06_04_meeting_notes.pdf": "Prior work overview; dataset and proposal guidance",
+    "2025_06_26_meeting_notes.pdf": "Data cleaning, merging, and clustering practice report",
+    "2025_07_10_meeting_notes.pdf": "Test dataset progress; proposal defense timeline set",
+    "2025_07_17_meeting_notes.pdf": "Proposal template sections reviewed with feedback",
+    "2025_07_24_meeting_notes.pdf": "First proposal draft; dataset mismatch issues identified",
+    "2025_07_25_meeting_notes.pdf": "First proposal draft review continued",
+    "2025_08_07_meeting_notes.pdf": "Project framework and data analysis methods presented",
+    "2025_09_04_meeting_notes.pdf": "Three-component framework: chemical, taxa, environmental",
+    "2025_09_11_meeting_notes.pdf": "Reference condition study; proposal modification planned",
+    "2025_10_02_meeting_notes.pdf": "Second proposal; PCA-based pollution assessment introduced",
+    "2025_10_09_meeting_notes.pdf": "Third proposal revision; pollution assessment updated",
+    "2025_10_16_meeting_notes.pdf": "Dataset merging completed; composite indicator discussed",
+    "2025_10_23_meeting_notes.pdf": "Proposal submitted; Git version control adopted",
+    "2025_10_30_meeting_notes.pdf": "PCA pollution assessment implemented; codebase refactored",
+    "2025_11_06_meeting_notes.pdf": "Sediment contamination assessment: key lessons reported",
+    "2025_11_13_meeting_notes.pdf": "Previous work summarized; next-step goals outlined",
+    "2025_11_20_meeting_notes.pdf": "Sediment contamination assessment reproduction completed",
+    "2025_12_04_meeting_notes.pdf": "Clustering analysis using PCA-derived pollution scores",
+    "2025_12_11_meeting_notes.pdf": "Species composition analysis; water velocity imputed",
+    "2025_12_18_meeting_notes.pdf": "RDA and LDA results; full workflow reviewed",
+    "2026_01_08_meeting_notes.pdf": "Winter break update; 90% thesis framework completed",
+    "2026_01_15_meeting_notes.pdf": "Environmental group partitioning; quantile regression discussed",
+    "2026_01_22_meeting_notes.pdf": "Side-by-side comparison with Jian's thesis results",
+    "2026_01_29_meeting_notes.pdf": "BEAST multivariate sediment assessment reproduction",
+    "2026_02_05_meeting_notes.pdf": "Progress update; PhD offer from U of Alberta",
+    "2026_02_11_meeting_notes.pdf": "In-person meeting; mid-term thesis report presented",
+    "2026_02_26_meeting_notes.pdf": "Full computation overview; reproducibility discussed",
+    "2026_02_28_SSC_Abstract-Feng Gu.pdf": "SSC abstract: ecological thresholds in zoobenthic communities",
+    "2026_03_05_meeting_notes.pdf": "Computation details reviewed; thesis writing begins",
+    "2026_03_12_meeting_notes.pdf": "Jian's multivariate approach presentation and comparison",
+    "2026_03_15_SSC_Thesis_Summary - Feng Gu.pdf": "SSC thesis summary: stressor-response quantile detection",
+    "2026_03_19_meeting_notes.pdf": "Chapter 2 discussion; RDA cut-off value advice",
+    "2026_03_23_SSC_Travel_Grants.pdf": "SSC annual meeting student travel grant received",
+    "2026_03_26_meeting_notes.pdf": "Chapter 2 feedback; clustering logic issues clarified",
+    "2026_04_01_TRUSU_Travel_Grants.pdf": "TRUSU travel grant approved for conference attendance",
+    "2026_04_02_meeting_notes.pdf": "Chapters 2-3 progress; RDA methodology discussed",
+    "2026_04_16_meeting_notes.pdf": "PCA methodology review; clustering and presentation planning",
+    "2026_04_21_meeting_notes.pdf": "PCA and clustering review continued",
+    "2026_04_30_meeting_notes.pdf": "Data unit inconsistencies; mercury and zinc issues",
+}
 
 # ── Page definitions ──
 # Each page is defined by a regex that matches the H1 heading that starts it.
@@ -225,22 +269,29 @@ def _copy_images() -> int:
 # ── Records page (meeting notes) ──
 
 def _scan_local_meeting_notes() -> dict[int, list[dict]]:
-    """Scan docs/meeting-notes/ for PDFs named YYYY_MM_DD_meeting_notes.pdf.
+    """Scan docs/Records/ for PDFs with a YYYY_MM_DD prefix.
 
     Returns entries sorted descending (most recent first) within each year.
     """
-    if not MEETING_NOTES_DIR.exists():
+    if not RECORDS_DIR.exists():
         return {}
     by_year: dict[int, list[dict]] = {}
-    for pdf in MEETING_NOTES_DIR.glob("*_meeting_notes.pdf"):
-        m = re.match(r"(\d{4})_(\d{2})_(\d{2})_meeting_notes\.pdf", pdf.name)
+    for pdf in RECORDS_DIR.glob("*.pdf"):
+        m = re.match(r"(\d{4})_(\d{2})_(\d{2})_(.+)\.pdf", pdf.name)
         if not m:
             continue
         year, month, day = int(m.group(1)), int(m.group(2)), int(m.group(3))
+        rest = m.group(4)
         month_name = MONTH_NUM_TO_FULL.get(month, f"Month{month}")
+        if rest == "meeting_notes":
+            display = f"{month_name} {day} Meeting Notes"
+        else:
+            display = f"{month_name} {day} — {rest.replace('_', ' ')}"
+        summary = PDF_SUMMARIES.get(pdf.name, "")
         by_year.setdefault(year, []).append({
             "filename": pdf.name,
-            "display": f"{month_name} {day} Meeting Notes",
+            "display": display,
+            "summary": summary,
             "sort_key": (month, day),
         })
     for year in by_year:
@@ -264,11 +315,16 @@ def _build_records_page(by_year: dict[int, list[dict]],
         is_open = "open" if year >= 2026 else ""
         items_html = ""
         for e in entries:
-            href = f"meeting-notes/{e['filename']}"
+            href = f"Records/{e['filename']}"
+            summary_html = (
+                f'<span class="record-summary">{e["summary"]}</span>'
+                if e.get("summary") else ""
+            )
             items_html += (
                 f'        <li class="record-item">'
                 f'<a href="{href}" target="_blank" rel="noopener">'
-                f'<span class="record-icon"></span>{e["display"]}'
+                f'<span class="record-icon"></span>'
+                f'<span class="record-text">{e["display"]}{summary_html}</span>'
                 f'</a></li>\n'
             )
         year_sections += f"""    <details class="year-group" {is_open}>
