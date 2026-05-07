@@ -44,10 +44,10 @@ PAGES = [
         "notebook_path": DATA_PREPARATION_NOTEBOOK_PATH,
     },
     {
-        "id": "workflow",
-        "file": "workflow.html",
-        "title": "Workflow Framework",
-        "heading_pattern": r"^#\s+Workflow Template|^#\s+Tool:\s*Recursive",
+        "id": "architecture",
+        "file": "architecture.html",
+        "title": "Architecture",
+        "heading_pattern": r"^#\s+.*Architecture|^#\s+Workflow Template|^#\s+Tool:\s*Recursive",
         "notebook_path": ARCHITECTURE_NOTEBOOK_PATH,
     },
     {

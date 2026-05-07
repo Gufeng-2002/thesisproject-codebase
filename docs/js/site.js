@@ -4,7 +4,7 @@ const NAV_PAGES = [
   { id: "home",             href: "index.html",            label: "Home" },
   { id: "data-cleaning",    href: "data-cleaning.html",    label: "Data Cleaning" },
   { id: "data-preparation", href: "data-preparation.html", label: "Data Preparation" },
-  { id: "workflow",         href: "workflow.html",          label: "Workflow" },
+  { id: "architecture",     href: "architecture.html",      label: "Architecture" },
   { id: "chapter2",         href: "chapter2.html",         label: "Ch.2: Pollution" },
   { id: "chapter3",         href: "chapter3.html",         label: "Ch.3: Standardization" },
   { id: "chapter4",         href: "chapter4.html",         label: "Ch.4: ZCI Ordination" },
