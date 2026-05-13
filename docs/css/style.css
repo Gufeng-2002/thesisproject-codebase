@@ -176,7 +176,10 @@ a.nav-link.active { color: var(--accent); font-weight: 600; }
 .sidebar a:hover { color: var(--accent); }
 .sidebar a.toc-active { color: var(--accent); border-left-color: var(--accent); font-weight: 600; }
 
-.sidebar .toc-h3 { padding-left: 24px; font-size: 0.8rem; }
+.sidebar .toc-h1 { padding-left: 12px; font-weight: 600; }
+.sidebar .toc-h2 { padding-left: 20px; font-size: 0.82rem; }
+.sidebar .toc-h3 { padding-left: 30px; font-size: 0.8rem; }
+.sidebar .toc-h4 { padding-left: 40px; font-size: 0.78rem; }
 
 /* ─── Content area ─── */
 .content-area {

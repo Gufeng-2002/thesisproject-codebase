@@ -15,9 +15,11 @@ const NAV_SECTIONS = [
     id: "chapters-group",
     label: "Chapters",
     children: [
-      { id: "chapter2", href: "chapter2.html", label: "Ch.2: Pollution" },
-      { id: "chapter3", href: "chapter3.html", label: "Ch.3: Standardization" },
-      { id: "chapter4", href: "chapter4.html", label: "Ch.4: ZCI Ordination" },
+      { id: "chapter2", href: "chapter2.html", label: "Chapter 2" },
+      { id: "chapter3", href: "chapter3.html", label: "Chapter 3" },
+      { id: "chapter4", href: "chapter4.html", label: "Chapter 4" },
+      { id: "chapter5", href: "chapter5.html", label: "Chapter 5" },
+      { id: "chapter6", href: "chapter6.html", label: "Chapter 6" },
     ],
   },
   { id: "records", href: "records.html", label: "Records" },
@@ -160,7 +162,7 @@ function buildTOC() {
   const content = document.getElementById("notebook") || document.querySelector(".content-area");
   if (!sidebar || !content) return;
 
-  const headings = content.querySelectorAll("h2, h3");
+  const headings = content.querySelectorAll("h1, h2, h3, h4");
   if (headings.length === 0) { sidebar.style.display = "none"; return; }
 
   headings.forEach((h, i) => {
@@ -169,7 +171,7 @@ function buildTOC() {
 
   let html = '<p class="sidebar-title">On this page</p><ul>';
   headings.forEach(h => {
-    const cls = h.tagName === "H3" ? "toc-h3" : "";
+    const cls = `toc-${h.tagName.toLowerCase()}`;
     html += `<li><a href="#${h.id}" class="${cls}">${h.textContent}</a></li>`;
   });
   html += "</ul>";

@@ -18,7 +18,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 DATA_PREPARATION_NOTEBOOK_PATH = ROOT / "DataPreparation.ipynb"
 ARCHITECTURE_NOTEBOOK_PATH = ROOT / "Architecture.ipynb"
-CHAPTERS_NOTEBOOK_PATH = ROOT / "Chapters.ipynb"
+CHAPTER2_NOTEBOOK_PATH = ROOT / "Chapter2.ipynb"
+CHAPTER3_NOTEBOOK_PATH = ROOT / "Chapter3.ipynb"
+CHAPTER4_NOTEBOOK_PATH = ROOT / "Chapter4.ipynb"
+CHAPTER5_NOTEBOOK_PATH = ROOT / "Chapter5.ipynb"
+CHAPTER6_NOTEBOOK_PATH = ROOT / "Chapter6.ipynb"
 HOMEPAGE_NOTEBOOK_PATH = ROOT / "Homepage.ipynb"
 RECORDS_NOTEBOOK_PATH = ROOT / "Records.ipynb"
 OUTPUT_DIR = ROOT / "docs"
@@ -70,6 +74,7 @@ PDF_SUMMARIES: dict[str, str] = {
     "2026_04_16_meeting_notes.pdf": "PCA methodology review; clustering and presentation planning",
     "2026_04_21_meeting_notes.pdf": "PCA and clustering review continued",
     "2026_04_30_meeting_notes.pdf": "Data unit inconsistencies; mercury and zinc issues",
+    "2026_05_07_meeting_notes.pdf": "Reviewed contaminant data discrepancies; emphasized extreme quantiles for thresholds",
 }
 
 # ── Page definitions ──
@@ -104,21 +109,35 @@ PAGES = [
         "file": "chapter2.html",
         "title": "Chapter 2: Pollution Assessment",
         "heading_pattern": r"^#\s+Chapter 2",
-        "notebook_path": CHAPTERS_NOTEBOOK_PATH,
+        "notebook_path": CHAPTER2_NOTEBOOK_PATH,
     },
     {
         "id": "chapter3",
         "file": "chapter3.html",
         "title": "Chapter 3: Environmental Standardization",
         "heading_pattern": r"^#\s+Chapter 3",
-        "notebook_path": CHAPTERS_NOTEBOOK_PATH,
+        "notebook_path": CHAPTER3_NOTEBOOK_PATH,
     },
     {
         "id": "chapter4",
         "file": "chapter4.html",
         "title": "Chapter 4: ZCI of Bray-Curtis Ordination on Community Composition",
         "heading_pattern": r"^#\s+Chapter 4",
-        "notebook_path": CHAPTERS_NOTEBOOK_PATH,
+        "notebook_path": CHAPTER4_NOTEBOOK_PATH,
+    },
+    {
+        "id": "chapter5",
+        "file": "chapter5.html",
+        "title": "Chapter 5",
+        "heading_pattern": r"^#\s+Chapter 5",
+        "notebook_path": CHAPTER5_NOTEBOOK_PATH,
+    },
+    {
+        "id": "chapter6",
+        "file": "chapter6.html",
+        "title": "Chapter 6",
+        "heading_pattern": r"^#\s+Chapter 6",
+        "notebook_path": CHAPTER6_NOTEBOOK_PATH,
     },
 ]
 
@@ -433,7 +452,7 @@ def main() -> None:
         print("  WARNING: No meeting notes found in docs/meeting-notes/, skipping records.html")
 
     print(f"\nDone. Landing page (index.html) is generated from {HOMEPAGE_NOTEBOOK_PATH.name}.")
-    print("To publish: git add docs/ && git commit && git push")
+    print("To publish: python scripts/build_skeleton_site.py && git add Chapter*.ipynb Homepage.ipynb Records.ipynb DataPreparation.ipynb Architecture.ipynb scripts/build_skeleton_site.py docs/ && git commit -m \"Update site from notebooks\" && git push")
 
 
 if __name__ == "__main__":
