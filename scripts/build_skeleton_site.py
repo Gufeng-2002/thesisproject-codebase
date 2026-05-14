@@ -84,13 +84,6 @@ PDF_SUMMARIES: dict[str, str] = {
 
 PAGES = [
     {
-        "id": "data-cleaning",
-        "file": "data-cleaning.html",
-        "title": "Chemical Data Cleaning",
-        "heading_pattern": r"^#\s+Summary of Chemical Data Cleaning",
-        "notebook_path": DATA_PREPARATION_NOTEBOOK_PATH,
-    },
-    {
         "id": "data-preparation",
         "file": "data-preparation.html",
         "title": "Data Preparation",

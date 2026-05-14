@@ -2,14 +2,7 @@
 // Nav is organized into sections with optional dropdown sub-pages.
 const NAV_SECTIONS = [
   { id: "home", href: "index.html", label: "Home" },
-  {
-    id: "data-preparation-group",
-    label: "Data Preparation",
-    children: [
-      { id: "data-cleaning",    href: "data-cleaning.html",    label: "Data Cleaning" },
-      { id: "data-preparation", href: "data-preparation.html", label: "Data Preparation" },
-    ],
-  },
+  { id: "data-preparation", href: "data-preparation.html", label: "Data Preparation" },
   { id: "architecture", href: "architecture.html", label: "Architecture" },
   {
     id: "chapters-group",
