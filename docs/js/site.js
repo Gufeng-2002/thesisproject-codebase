@@ -115,7 +115,10 @@ function protectMath(source) {
 }
 
 function restoreMath(html, segments) {
-  return html.replace(/@@MATH_(\d+)@@/g, (_, idx) => segments[Number(idx)] ?? "");
+  return html.replace(/@@MATH_(\d+)@@/g, (_, idx) => {
+    const segment = segments[Number(idx)];
+    return segment ? escapeHtml(segment) : "";
+  });
 }
 
 function renderMarkdown(source) {
