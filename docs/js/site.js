@@ -2,6 +2,7 @@
 // Nav is organized into sections with optional dropdown sub-pages.
 const NAV_SECTIONS = [
   { id: "home", href: "index.html", label: "Home" },
+  { id: "gallery", href: "gallery.html", label: "Gallery" },
   { id: "data-preparation", href: "data-preparation.html", label: "Data Preparation" },
   { id: "architecture", href: "architecture.html", label: "Architecture" },
   {
@@ -15,7 +16,6 @@ const NAV_SECTIONS = [
       { id: "chapter6", href: "chapter6.html", label: "Chapter 6" },
     ],
   },
-  { id: "gallery", href: "gallery.html", label: "Gallery" },
   { id: "records", href: "records.html", label: "Records" },
 ];
 
@@ -129,6 +129,23 @@ function renderMarkdown(source) {
   return restoreMath(html, mathSegments);
 }
 
+function markGalleryFrameworkEnds(container) {
+  if ((window.PAGE_ID || "home") !== "gallery") return;
+
+  const sections = Array.from(container.querySelectorAll(":scope > .cell"));
+  sections.forEach(section => section.classList.remove("gallery-framework-end"));
+
+  sections.forEach((section, index) => {
+    if (!section.querySelector("h3")) return;
+
+    const nextBoundary = sections.findIndex((candidate, candidateIndex) => (
+      candidateIndex > index && candidate.querySelector("h1, h2, h3")
+    ));
+    const endIndex = nextBoundary === -1 ? sections.length - 1 : nextBoundary - 1;
+    if (endIndex >= index) sections[endIndex].classList.add("gallery-framework-end");
+  });
+}
+
 // ─── Cell rendering ───
 function renderCells(cells) {
   const container = document.getElementById("notebook");
@@ -147,6 +164,8 @@ function renderCells(cells) {
     section.appendChild(body);
     container.appendChild(section);
   }
+
+  markGalleryFrameworkEnds(container);
 
   if (window.MathJax && window.MathJax.typesetPromise) {
     window.MathJax.typesetPromise();

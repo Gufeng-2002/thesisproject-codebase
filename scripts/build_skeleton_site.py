@@ -10,7 +10,9 @@ pages in docs/. Then commit and push to update the GitHub Pages site.
 from __future__ import annotations
 
 import calendar
+import html
 import json
+import math
 import re
 import shutil
 from pathlib import Path
@@ -164,7 +166,10 @@ STANDALONE_NOTEBOOK_PAGES = [
 
 def _normalize_source(source: object) -> str:
     if isinstance(source, list):
-        return "".join(str(s) for s in source).rstrip()
+        parts = [str(s) for s in source]
+        if len(parts) > 1 and not any("\n" in part for part in parts):
+            return "\n".join(parts).rstrip()
+        return "".join(parts).rstrip()
     return str(source).rstrip()
 
 
@@ -226,6 +231,91 @@ def _rewrite_image_paths(source: str) -> str:
     return rewritten
 
 
+def _format_table_value(value: object) -> str:
+    if value is None:
+        return ""
+    try:
+        if value != value:
+            return ""
+    except TypeError:
+        pass
+    if isinstance(value, float):
+        if math.isclose(value, round(value), abs_tol=1e-10):
+            return str(int(round(value)))
+        if 0 < abs(value) < 0.0001 or abs(value) >= 10000:
+            return f"{value:.3e}"
+        return f"{value:.3f}".rstrip("0").rstrip(".")
+    return str(value)
+
+
+def _clean_table_label(value: object) -> str:
+    return re.sub(r"\s+", " ", _format_table_value(value).replace("\n", " ")).strip()
+
+
+def _frame_to_html_table(frame, *, include_header: bool = True) -> str:
+    rows: list[str] = []
+    if include_header:
+        headers = "".join(
+            f"<th>{html.escape(_clean_table_label(column))}</th>"
+            for column in frame.columns
+        )
+        rows.append(f"<thead><tr>{headers}</tr></thead>")
+
+    body_rows = []
+    for _, row in frame.iterrows():
+        cells = "".join(
+            f"<td>{html.escape(_format_table_value(value))}</td>"
+            for value in row
+        )
+        body_rows.append(f"<tr>{cells}</tr>")
+    rows.append("<tbody>" + "".join(body_rows) + "</tbody>")
+
+    return (
+        '<div class="gallery-table-block">\n'
+        '<div class="table-wrapper">\n'
+        '<table class="gallery-result-table">\n'
+        + "\n".join(rows)
+        + "\n</table>\n</div>\n</div>"
+    )
+
+
+def _large_frame_summary_table(frame) -> str:
+    numeric = frame.select_dtypes(include="number")
+    if numeric.empty:
+        preview = frame.head(20)
+        return _frame_to_html_table(preview) + f'\n<p class="gallery-table-note">Showing first 20 of {len(frame):,} rows.</p>'
+
+    summary = numeric.agg(["count", "mean", "std", "min", "median", "max"]).T.reset_index()
+    summary = summary.rename(columns={"index": "Variable"})
+    return _frame_to_html_table(summary) + f'\n<p class="gallery-table-note">Numeric summary of {len(frame):,} rows.</p>'
+
+
+def _excel_result_to_html(href: str) -> str:
+    import pandas as pd
+
+    filename = Path(href).name
+    source_path = CODESPACE_RESULTS_SRC / filename
+    if not source_path.exists():
+        source_path = GALLERY_RESULTS_DST / filename
+    if not source_path.exists():
+        return f'<p class="gallery-table-note">Table file not found: {html.escape(filename)}</p>'
+
+    header_frame = pd.read_excel(source_path)
+    if len(header_frame) > 80:
+        return _large_frame_summary_table(header_frame)
+
+    if any(str(column).startswith("Unnamed") for column in header_frame.columns):
+        raw_frame = pd.read_excel(source_path, header=None)
+        return _frame_to_html_table(raw_frame, include_header=False)
+
+    return _frame_to_html_table(header_frame)
+
+
+def _embed_gallery_table_links(source: str) -> str:
+    pattern = re.compile(r'<a\s+class="table-download"\s+href="([^"]+\.xlsx)"\s+download>.*?</a>')
+    return pattern.sub(lambda match: _excel_result_to_html(match.group(1)), source)
+
+
 def _build_content_page(page_def: dict, cells: list[dict]) -> str:
     page_id = page_def["id"]
     title = page_def["title"]
@@ -235,9 +325,12 @@ def _build_content_page(page_def: dict, cells: list[dict]) -> str:
 
     processed_cells = []
     for cell in cells:
+        source = _rewrite_image_paths(cell["source"])
+        if layout == "gallery":
+            source = _embed_gallery_table_links(source)
         processed_cells.append({
             "cell_type": cell["cell_type"],
-            "source": _rewrite_image_paths(cell["source"]),
+            "source": source,
         })
 
     serialized = json.dumps(processed_cells, ensure_ascii=True)
@@ -252,9 +345,11 @@ def _build_content_page(page_def: dict, cells: list[dict]) -> str:
         main_class = "content-area landing-content"
         sidebar_markup = ""
     elif layout == "gallery":
-        page_layout = "page-layout no-sidebar"
+        page_layout = "page-layout"
         main_class = "content-area gallery-page"
-        sidebar_markup = ""
+        sidebar_markup = """    <aside id="sidebar" class="sidebar"></aside>
+    <div class="sidebar-overlay"></div>
+"""
     else:
         page_layout = "page-layout"
         main_class = "content-area"
