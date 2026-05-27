@@ -1,2 +1,28 @@
+# Claude worktrees
 .claude/worktrees/
 **/.claude/worktrees/
+
+# OS junk
+.DS_Store
+**/.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.ipynb_checkpoints/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+
+# Pipeline outputs that are reproducible from data/ + code
+artifacts/
+logs/
+
+# Excel temp lock files
+~$*.xlsx
+
+# Local virtualenvs
+.venv/
+venv/

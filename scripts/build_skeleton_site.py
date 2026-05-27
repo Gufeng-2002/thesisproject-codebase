@@ -16,15 +16,16 @@ import shutil
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DATA_PREPARATION_NOTEBOOK_PATH = ROOT / "DataPreparation.ipynb"
-ARCHITECTURE_NOTEBOOK_PATH = ROOT / "Architecture.ipynb"
-CHAPTER2_NOTEBOOK_PATH = ROOT / "Chapter2.ipynb"
-CHAPTER3_NOTEBOOK_PATH = ROOT / "Chapter3.ipynb"
-CHAPTER4_NOTEBOOK_PATH = ROOT / "Chapter4.ipynb"
-CHAPTER5_NOTEBOOK_PATH = ROOT / "Chapter5.ipynb"
-CHAPTER6_NOTEBOOK_PATH = ROOT / "Chapter6.ipynb"
-HOMEPAGE_NOTEBOOK_PATH = ROOT / "Homepage.ipynb"
-RECORDS_NOTEBOOK_PATH = ROOT / "Records.ipynb"
+CHAPTERS_DIR = ROOT / "chapters"
+DATA_PREPARATION_NOTEBOOK_PATH = CHAPTERS_DIR / "DataPreparation.ipynb"
+ARCHITECTURE_NOTEBOOK_PATH = CHAPTERS_DIR / "Architecture.ipynb"
+CHAPTER2_NOTEBOOK_PATH = CHAPTERS_DIR / "Chapter2.ipynb"
+CHAPTER3_NOTEBOOK_PATH = CHAPTERS_DIR / "Chapter3.ipynb"
+CHAPTER4_NOTEBOOK_PATH = CHAPTERS_DIR / "Chapter4.ipynb"
+CHAPTER5_NOTEBOOK_PATH = CHAPTERS_DIR / "Chapter5.ipynb"
+CHAPTER6_NOTEBOOK_PATH = CHAPTERS_DIR / "Chapter6.ipynb"
+HOMEPAGE_NOTEBOOK_PATH = CHAPTERS_DIR / "Homepage.ipynb"
+RECORDS_NOTEBOOK_PATH = CHAPTERS_DIR / "Records.ipynb"
 OUTPUT_DIR = ROOT / "docs"
 IMAGES_SRC = ROOT / "demos_images"
 IMAGES_DST = OUTPUT_DIR / "images"
@@ -445,7 +446,7 @@ def main() -> None:
         print("  WARNING: No meeting notes found in docs/meeting-notes/, skipping records.html")
 
     print(f"\nDone. Landing page (index.html) is generated from {HOMEPAGE_NOTEBOOK_PATH.name}.")
-    print("To publish: python scripts/build_skeleton_site.py && git add Chapter*.ipynb Homepage.ipynb Records.ipynb DataPreparation.ipynb Architecture.ipynb scripts/build_skeleton_site.py docs/ && git commit -m \"Update site from notebooks\" && git push")
+    print("To publish: python scripts/build_skeleton_site.py && git add chapters/ scripts/build_skeleton_site.py docs/ && git commit -m \"Update site from notebooks\" && git push")
 
 
 if __name__ == "__main__":
