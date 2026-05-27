@@ -15,6 +15,7 @@ const NAV_SECTIONS = [
       { id: "chapter6", href: "chapter6.html", label: "Chapter 6" },
     ],
   },
+  { id: "gallery", href: "gallery.html", label: "Gallery" },
   { id: "records", href: "records.html", label: "Records" },
 ];
 
@@ -212,6 +213,10 @@ function waitForMarked(cb, tries) {
 
 window.addEventListener("DOMContentLoaded", () => {
   const pageId = window.PAGE_ID || "home";
+  document.body.classList.add(`page-${pageId}`);
+  if (pageId === "gallery") {
+    document.body.classList.add("gallery-page");
+  }
   injectNav(pageId);
 
   if (window.cells) {

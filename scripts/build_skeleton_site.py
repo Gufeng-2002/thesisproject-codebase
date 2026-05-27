@@ -26,10 +26,15 @@ CHAPTER5_NOTEBOOK_PATH = CHAPTERS_DIR / "Chapter5.ipynb"
 CHAPTER6_NOTEBOOK_PATH = CHAPTERS_DIR / "Chapter6.ipynb"
 HOMEPAGE_NOTEBOOK_PATH = CHAPTERS_DIR / "Homepage.ipynb"
 RECORDS_NOTEBOOK_PATH = CHAPTERS_DIR / "Records.ipynb"
+GALLERY_NOTEBOOK_PATH = CHAPTERS_DIR / "Gallery.ipynb"
 OUTPUT_DIR = ROOT / "docs"
 IMAGES_SRC = ROOT / "demos_images"
 IMAGES_DST = OUTPUT_DIR / "images"
 RECORDS_DIR = OUTPUT_DIR / "Records"
+CODESPACE_FIGURES_SRC = ROOT / "codespace" / "figures"
+CODESPACE_RESULTS_SRC = ROOT / "codespace" / "results"
+GALLERY_IMAGES_DST = IMAGES_DST / "gallery"
+GALLERY_RESULTS_DST = OUTPUT_DIR / "results"
 
 MONTH_NUM_TO_FULL = {num: name for num, name in enumerate(calendar.month_name) if num}
 
@@ -145,6 +150,15 @@ STANDALONE_NOTEBOOK_PAGES = [
         "notebook_path": HOMEPAGE_NOTEBOOK_PATH,
         "layout": "home",
     },
+    {
+        "id": "gallery",
+        "file": "gallery.html",
+        "title": "Gallery",
+        "browser_title": "Gallery - Zoobenthic Assessment",
+        "description": "Timeline of figures and tables produced across all chapter frameworks.",
+        "notebook_path": GALLERY_NOTEBOOK_PATH,
+        "layout": "gallery",
+    },
 ]
 
 
@@ -225,6 +239,10 @@ def _build_content_page(page_def: dict, cells: list[dict]) -> str:
         page_layout = "page-layout no-sidebar"
         main_class = "content-area landing-content"
         sidebar_markup = ""
+    elif layout == "gallery":
+        page_layout = "page-layout no-sidebar"
+        main_class = "content-area gallery-page"
+        sidebar_markup = ""
     else:
         page_layout = "page-layout"
         main_class = "content-area"
@@ -277,6 +295,30 @@ def _copy_images() -> int:
             shutil.copy2(img, IMAGES_DST / img.name)
             count += 1
     return count
+
+
+def _copy_gallery_assets() -> tuple[int, int]:
+    """Copy codespace/figures/*.png → docs/images/gallery/ and
+    codespace/results/*.xlsx → docs/results/ for the Gallery page."""
+    n_figs = 0
+    n_tabs = 0
+    if CODESPACE_FIGURES_SRC.exists():
+        GALLERY_IMAGES_DST.mkdir(parents=True, exist_ok=True)
+        for img in CODESPACE_FIGURES_SRC.glob("*.png"):
+            shutil.copy2(img, GALLERY_IMAGES_DST / img.name)
+            n_figs += 1
+        for img in CODESPACE_FIGURES_SRC.glob("*.jpg"):
+            shutil.copy2(img, GALLERY_IMAGES_DST / img.name)
+            n_figs += 1
+    if CODESPACE_RESULTS_SRC.exists():
+        GALLERY_RESULTS_DST.mkdir(parents=True, exist_ok=True)
+        for tab in CODESPACE_RESULTS_SRC.glob("*.xlsx"):
+            shutil.copy2(tab, GALLERY_RESULTS_DST / tab.name)
+            n_tabs += 1
+        for tab in CODESPACE_RESULTS_SRC.glob("*.csv"):
+            shutil.copy2(tab, GALLERY_RESULTS_DST / tab.name)
+            n_tabs += 1
+    return n_figs, n_tabs
 
 
 # ── Records page (meeting notes) ──
@@ -428,6 +470,10 @@ def main() -> None:
 
     n_imgs = _copy_images()
     print(f"  Copied {n_imgs} images to docs/images/")
+
+    n_gfigs, n_gtabs = _copy_gallery_assets()
+    print(f"  Copied {n_gfigs} gallery figures → docs/images/gallery/")
+    print(f"  Copied {n_gtabs} gallery tables  → docs/results/")
 
     # ── Records page ──
     records_cells: list[dict] = []
