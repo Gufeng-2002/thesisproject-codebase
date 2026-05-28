@@ -40,6 +40,20 @@ GALLERY_RESULTS_DST = OUTPUT_DIR / "results"
 
 MONTH_NUM_TO_FULL = {num: name for num, name in enumerate(calendar.month_name) if num}
 
+STYLE_CSS_PATH = OUTPUT_DIR / "css" / "style.css"
+SITE_JS_PATH = OUTPUT_DIR / "js" / "site.js"
+
+
+def _asset_version(path: Path) -> str:
+    try:
+        return str(int(path.stat().st_mtime))
+    except FileNotFoundError:
+        return "1"
+
+
+STYLE_CSS_VERSION = _asset_version(STYLE_CSS_PATH)
+SITE_JS_VERSION = _asset_version(SITE_JS_PATH)
+
 PDF_SUMMARIES: dict[str, str] = {
     "2025_03_21_meeting_notes.pdf": "Thesis committee formed; proposal framework established",
     "2025_05_05_meeting_notes.pdf": "Thesis framework: breakpoint regression analysis discussed",
@@ -363,7 +377,7 @@ def _build_content_page(page_def: dict, cells: list[dict]) -> str:
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{browser_title}</title>{meta_description}
-  <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css?v={STYLE_CSS_VERSION}">
   <script>
     window.MathJax = {{
       loader: {{ load: ['[tex]/extpfeil'] }},
@@ -373,7 +387,7 @@ def _build_content_page(page_def: dict, cells: list[dict]) -> str:
   </script>
   <script defer src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
-  <script defer src="js/site.js"></script>
+    <script defer src="js/site.js?v={SITE_JS_VERSION}"></script>
 </head>
 <body>
   <div id="site-nav"></div>
@@ -502,7 +516,7 @@ def _build_records_page(by_year: dict[int, list[dict]],
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Records - Zoobenthic Assessment</title>
-  <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css?v={STYLE_CSS_VERSION}">
   <script>
     window.MathJax = {{
       loader: {{ load: ['[tex]/extpfeil'] }},
@@ -512,7 +526,7 @@ def _build_records_page(by_year: dict[int, list[dict]],
   </script>
   <script defer src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
-  <script defer src="js/site.js"></script>
+    <script defer src="js/site.js?v={SITE_JS_VERSION}"></script>
 </head>
 <body>
   <div id="site-nav"></div>
