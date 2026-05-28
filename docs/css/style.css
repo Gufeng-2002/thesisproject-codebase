@@ -716,9 +716,9 @@ mjx-container { overflow-x: auto; overflow-y: hidden; }
   margin: 12px auto 6px;
   width: 80%;
   max-width: 80%;
-  border: 1px solid var(--rule-light);
-  border-radius: 4px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .gallery-page .cell p em,
