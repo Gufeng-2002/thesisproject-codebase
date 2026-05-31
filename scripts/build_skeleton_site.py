@@ -230,15 +230,17 @@ def _split_cells_into_pages(cells: list[dict]) -> dict[str, list[dict]]:
 
 
 def _rewrite_image_paths(source: str) -> str:
-    rewritten = source.replace("demos_images/", "images/")
-
     path_rewrites = {
+        "../demos_images/": "images/",
+        "./demos_images/": "images/",
+        "demos_images/": "images/",
         "../codespace/figures/": "images/gallery/",
         "codespace/figures/": "images/gallery/",
         "../codespace/results/": "results/",
         "codespace/results/": "results/",
     }
 
+    rewritten = source
     for old, new in path_rewrites.items():
         rewritten = rewritten.replace(old, new)
 
