@@ -97,6 +97,7 @@ PDF_SUMMARIES: dict[str, str] = {
     "2026_04_21_meeting_notes.pdf": "PCA and clustering review continued",
     "2026_04_30_meeting_notes.pdf": "Data unit inconsistencies; mercury and zinc issues",
     "2026_05_07_meeting_notes.pdf": "Reviewed contaminant data discrepancies; emphasized extreme quantiles for thresholds",
+    "2026_06_01_SSC_Slides.pdf": "SSC slide deck for thesis project presentation",
 }
 
 # ── Page definitions ──
