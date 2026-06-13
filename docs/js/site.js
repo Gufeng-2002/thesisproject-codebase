@@ -3,6 +3,7 @@
 const NAV_SECTIONS = [
   { id: "home", href: "index.html", label: "Home" },
   { id: "gallery", href: "gallery.html", label: "Gallery" },
+  { id: "drafts", href: "drafts.html", label: "Drafts" },
   { id: "data-preparation", href: "data-preparation.html", label: "Data Preparation" },
   { id: "architecture", href: "architecture.html", label: "Architecture" },
   {

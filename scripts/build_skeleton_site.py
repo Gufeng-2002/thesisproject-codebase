@@ -29,10 +29,14 @@ CHAPTER6_NOTEBOOK_PATH = CHAPTERS_DIR / "Chapter6.ipynb"
 HOMEPAGE_NOTEBOOK_PATH = CHAPTERS_DIR / "Homepage.ipynb"
 RECORDS_NOTEBOOK_PATH = CHAPTERS_DIR / "Records.ipynb"
 GALLERY_NOTEBOOK_PATH = CHAPTERS_DIR / "Gallery.ipynb"
+DRAFTS_NOTEBOOK_PATH = CHAPTERS_DIR / "Drafts.ipynb"
 OUTPUT_DIR = ROOT / "docs"
 IMAGES_SRC = ROOT / "demos_images"
 IMAGES_DST = OUTPUT_DIR / "images"
 RECORDS_DIR = OUTPUT_DIR / "Records"
+DRAFTS_DIR = OUTPUT_DIR / "Drafts"
+THESIS_DRAFT_SRC = ROOT.parent / "Writing" / "main" / "main.pdf"
+THESIS_DRAFT_DST = DRAFTS_DIR / "ongoing-thesis.pdf"
 CODESPACE_FIGURES_SRC = ROOT / "codespace" / "figures"
 CODESPACE_RESULTS_SRC = ROOT / "codespace" / "results"
 GALLERY_IMAGES_DST = IMAGES_DST / "gallery"
@@ -98,6 +102,8 @@ PDF_SUMMARIES: dict[str, str] = {
     "2026_04_30_meeting_notes.pdf": "Data unit inconsistencies; mercury and zinc issues",
     "2026_05_07_meeting_notes.pdf": "Reviewed contaminant data discrepancies; emphasized extreme quantiles for thresholds",
     "2026_06_01_SSC_Slides.pdf": "SSC slide deck for thesis project presentation",
+    "2026_06_05_meeting_notes.pdf": "NMDS interpretation priorities: add site codes and identify taxa driving reference-degraded separation",
+    "2026_06_11_meeting_notes.pdf": "Reproduce original PCA and Bray-Curtis polar ordination before extending methods",
 }
 
 # ── Page definitions ──
@@ -175,6 +181,15 @@ STANDALONE_NOTEBOOK_PAGES = [
         "description": "Timeline of figures and tables produced across all chapter frameworks.",
         "notebook_path": GALLERY_NOTEBOOK_PATH,
         "layout": "gallery",
+    },
+    {
+        "id": "drafts",
+        "file": "drafts.html",
+        "title": "Drafts",
+        "browser_title": "Drafts - Zoobenthic Assessment",
+        "description": "Current thesis draft and related draft notes.",
+        "notebook_path": DRAFTS_NOTEBOOK_PATH,
+        "layout": "content",
     },
 ]
 
@@ -445,6 +460,17 @@ def _copy_gallery_assets() -> tuple[int, int]:
     return n_figs, n_tabs
 
 
+def _copy_thesis_draft() -> bool:
+    """Copy the latest thesis draft into a stable public URL."""
+    if not THESIS_DRAFT_SRC.exists():
+        print(f"  WARNING: Thesis draft source not found: {THESIS_DRAFT_SRC}")
+        return False
+
+    DRAFTS_DIR.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(THESIS_DRAFT_SRC, THESIS_DRAFT_DST)
+    return True
+
+
 # ── Records page (meeting notes) ──
 
 def _scan_local_meeting_notes() -> dict[int, list[dict]]:
@@ -598,6 +624,9 @@ def main() -> None:
     n_gfigs, n_gtabs = _copy_gallery_assets()
     print(f"  Copied {n_gfigs} gallery figures → docs/images/gallery/")
     print(f"  Copied {n_gtabs} gallery tables  → docs/results/")
+
+    if _copy_thesis_draft():
+        print(f"  Copied thesis draft → {THESIS_DRAFT_DST.relative_to(OUTPUT_DIR)}")
 
     # ── Records page ──
     records_cells: list[dict] = []
