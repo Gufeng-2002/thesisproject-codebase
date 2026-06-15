@@ -10,6 +10,7 @@ pages in docs/. Then commit and push to update the GitHub Pages site.
 from __future__ import annotations
 
 import calendar
+from datetime import datetime
 import html
 import json
 import math
@@ -37,6 +38,7 @@ RECORDS_DIR = OUTPUT_DIR / "Records"
 DRAFTS_DIR = OUTPUT_DIR / "Drafts"
 THESIS_DRAFT_SRC = ROOT.parent / "Writing" / "main" / "main.pdf"
 THESIS_DRAFT_DST = DRAFTS_DIR / "ongoing-thesis.pdf"
+THESIS_MAIN_TEX_PATH = ROOT.parent / "Writing" / "main" / "main.tex"
 CODESPACE_FIGURES_SRC = ROOT / "codespace" / "figures"
 CODESPACE_RESULTS_SRC = ROOT / "codespace" / "results"
 GALLERY_IMAGES_DST = IMAGES_DST / "gallery"
@@ -348,6 +350,163 @@ def _embed_gallery_table_links(source: str) -> str:
     return pattern.sub(lambda match: _excel_result_to_html(match.group(1)), source)
 
 
+def _strip_latex_comments(source: str) -> str:
+    cleaned_lines = []
+    for line in source.splitlines():
+        escaped = False
+        kept_chars = []
+        for char in line:
+            if char == "%" and not escaped:
+                break
+            kept_chars.append(char)
+            escaped = char == "\\" and not escaped
+            if char != "\\":
+                escaped = False
+        cleaned_lines.append("".join(kept_chars))
+    return "\n".join(cleaned_lines)
+
+
+def _extract_balanced_brace(source: str, open_index: int) -> tuple[str, int] | None:
+    if open_index >= len(source) or source[open_index] != "{":
+        return None
+
+    depth = 0
+    value_chars = []
+    escaped = False
+    for index in range(open_index, len(source)):
+        char = source[index]
+        if char == "\\" and not escaped:
+            escaped = True
+            if depth > 0:
+                value_chars.append(char)
+            continue
+        if char == "{" and not escaped:
+            depth += 1
+            if depth > 1:
+                value_chars.append(char)
+        elif char == "}" and not escaped:
+            depth -= 1
+            if depth == 0:
+                return "".join(value_chars).strip(), index + 1
+            value_chars.append(char)
+        elif depth > 0:
+            value_chars.append(char)
+        escaped = False
+    return None
+
+
+def _read_latex_command_arguments(source: str, command: str) -> list[str]:
+    matches = []
+    command_re = re.compile(rf"\\{re.escape(command)}\*?\s*(?:\[[^\]]*\]\s*)?\{{")
+    for match in command_re.finditer(source):
+        brace_index = match.end() - 1
+        extracted = _extract_balanced_brace(source, brace_index)
+        if extracted:
+            matches.append(extracted[0])
+    return matches
+
+
+def _resolve_tex_input(base_path: Path, tex_input: str) -> Path:
+    input_path = Path(tex_input.strip())
+    if input_path.suffix != ".tex":
+        input_path = input_path.with_suffix(".tex")
+    if not input_path.is_absolute():
+        input_path = base_path.parent / input_path
+    return input_path.resolve()
+
+
+def _latex_title_to_text(title: str) -> str:
+    title = re.sub(r"\\[a-zA-Z]+\*?(?:\[[^\]]*\])?", "", title)
+    title = title.replace("{", "").replace("}", "")
+    title = re.sub(r"\s+", " ", title)
+    return title.strip()
+
+
+def _scan_compiled_thesis_structure() -> list[dict]:
+    if not THESIS_MAIN_TEX_PATH.exists():
+        print(f"  WARNING: Thesis main.tex not found: {THESIS_MAIN_TEX_PATH}")
+        return []
+
+    main_source = _strip_latex_comments(THESIS_MAIN_TEX_PATH.read_text(encoding="utf-8"))
+    input_paths = [
+        _resolve_tex_input(THESIS_MAIN_TEX_PATH, tex_input)
+        for tex_input in _read_latex_command_arguments(main_source, "input")
+    ]
+
+    structure = []
+    for input_path in input_paths:
+        if not input_path.exists():
+            print(f"  WARNING: Compiled chapter input not found: {input_path}")
+            continue
+
+        source = _strip_latex_comments(input_path.read_text(encoding="utf-8"))
+        chapter_titles = _read_latex_command_arguments(source, "chapter")
+        section_titles = _read_latex_command_arguments(source, "section")
+        chapter_title = _latex_title_to_text(chapter_titles[0]) if chapter_titles else input_path.stem
+        structure.append({
+            "chapter": chapter_title,
+            "sections": [_latex_title_to_text(title) for title in section_titles],
+        })
+
+    return structure
+
+
+def _format_thesis_update_time() -> str:
+    timestamp_path = THESIS_DRAFT_SRC if THESIS_DRAFT_SRC.exists() else THESIS_DRAFT_DST
+    if not timestamp_path.exists():
+        return "Unavailable"
+    timestamp = datetime.fromtimestamp(timestamp_path.stat().st_mtime)
+    return timestamp.strftime("%B %d; %H:%M")
+
+
+def _format_compiled_structure_markdown(structure: list[dict]) -> str:
+    if not structure:
+        return "Compiled Structure:\n\nNo compiled chapters were detected from `main.tex`."
+
+    lines = ["Compiled Structure:"]
+    for index, chapter in enumerate(structure, start=1):
+        section_count = len(chapter["sections"])
+        section_label = "section" if section_count == 1 else "sections"
+        lines.append(f"\nChapter {index}: {chapter['chapter']} ({section_count} {section_label})")
+        if section_count:
+            for section in chapter["sections"]:
+                lines.append(f"- {section}")
+        else:
+            lines.append("- No sections detected")
+    return "\n".join(lines)
+
+
+def _inject_draft_metadata(cells: list[dict]) -> list[dict]:
+    latest_update = f"Latest Update: {_format_thesis_update_time()}"
+    compiled_structure = _format_compiled_structure_markdown(_scan_compiled_thesis_structure())
+    link_pattern = re.compile(r"^- \[Thesis Draft in Progress\]\(Drafts/ongoing-thesis\.pdf\)\s*$", re.MULTILINE)
+
+    updated_cells = []
+    inserted = False
+    for cell in cells:
+        if inserted or cell["cell_type"] != "markdown":
+            updated_cells.append(cell)
+            continue
+
+        source = cell["source"]
+        if link_pattern.search(source):
+            source = link_pattern.sub(
+                f"{latest_update}\n\n- [Thesis Draft in Progress](Drafts/ongoing-thesis.pdf)\n\n{compiled_structure}",
+                source,
+                count=1,
+            )
+            inserted = True
+        updated_cells.append({"cell_type": cell["cell_type"], "source": source})
+
+    if not inserted:
+        updated_cells.append({
+            "cell_type": "markdown",
+            "source": f"{latest_update}\n\n- [Thesis Draft in Progress](Drafts/ongoing-thesis.pdf)\n\n{compiled_structure}",
+        })
+
+    return updated_cells
+
+
 def _build_content_page(page_def: dict, cells: list[dict]) -> str:
     page_id = page_def["id"]
     title = page_def["title"]
@@ -600,6 +759,8 @@ def main() -> None:
         if not pcells:
             print(f"  WARNING: No cells matched for {page_def['file']}")
             continue
+        if page_def["id"] == "drafts":
+            pcells = _inject_draft_metadata(pcells)
 
         html = _build_content_page(page_def, pcells)
         out_path = OUTPUT_DIR / page_def["file"]
