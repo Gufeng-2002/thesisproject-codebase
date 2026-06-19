@@ -16,6 +16,8 @@ import json
 import math
 import re
 import shutil
+import subprocess
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -43,6 +45,29 @@ CODESPACE_FIGURES_SRC = ROOT / "codespace" / "figures"
 CODESPACE_RESULTS_SRC = ROOT / "codespace" / "results"
 GALLERY_IMAGES_DST = IMAGES_DST / "gallery"
 GALLERY_RESULTS_DST = OUTPUT_DIR / "results"
+NOTEBOOK_ENV_PYTHON = ROOT.parent / "envThesisProject" / "bin" / "python"
+GALLERY_APPENDIX_EMBED_CELLS = [
+    {
+        "cell_type": "markdown",
+        "source": "## Appendix\n\nThis appendix embeds the interactive NMDS ordination views exported from Chapter 4 Framework 2. These interactive results are regenerated whenever the website is rebuilt.",
+    },
+    {
+        "cell_type": "markdown",
+        "source": "### Corridor case study\n\nThe corridor export contains two interactive 3D ordination panels, one for each retained cluster.",
+    },
+    {
+        "cell_type": "markdown",
+        "source": "<div style='width: 100%; max-width: 1320px; margin: 0 auto;'>\n  <iframe src='results/appendix/ch4_fw2_interactive_ordination_corridor.html' title='Corridor interactive NMDS ordination appendix' style='width: 100%; height: 780px; border: 1px solid #d7dbe5; border-radius: 12px; background: #ffffff;'></iframe>\n  <p style='text-align: center; margin-top: 0.75rem;'><a href='results/appendix/ch4_fw2_interactive_ordination_corridor.html' target='_blank' rel='noopener noreferrer'>Open the corridor interactive ordination in a new tab</a></p>\n</div>",
+    },
+    {
+        "cell_type": "markdown",
+        "source": "### Detroit River case study\n\nThe Detroit River export contains three interactive 3D ordination panels, one for each retained cluster.",
+    },
+    {
+        "cell_type": "markdown",
+        "source": "<div style='width: 100%; max-width: 1480px; margin: 0 auto;'>\n  <iframe src='results/appendix/ch4_fw2_interactive_ordination_dr.html' title='Detroit River interactive NMDS ordination appendix' style='width: 100%; height: 820px; border: 1px solid #d7dbe5; border-radius: 12px; background: #ffffff;'></iframe>\n  <p style='text-align: center; margin-top: 0.75rem;'><a href='results/appendix/ch4_fw2_interactive_ordination_dr.html' target='_blank' rel='noopener noreferrer'>Open the Detroit River interactive ordination in a new tab</a></p>\n</div>",
+    },
+]
 
 MONTH_NUM_TO_FULL = {num: name for num, name in enumerate(calendar.month_name) if num}
 
@@ -524,6 +549,9 @@ def _build_content_page(page_def: dict, cells: list[dict]) -> str:
             "source": source,
         })
 
+    if page_id == "gallery":
+        processed_cells.extend(GALLERY_APPENDIX_EMBED_CELLS)
+
     serialized = json.dumps(processed_cells, ensure_ascii=True)
     meta_description = (
         f'\n  <meta name="description" content="{description}">'
@@ -628,6 +656,26 @@ def _copy_thesis_draft() -> bool:
     DRAFTS_DIR.mkdir(parents=True, exist_ok=True)
     shutil.copy2(THESIS_DRAFT_SRC, THESIS_DRAFT_DST)
     return True
+
+
+def _export_gallery_appendix_assets() -> list[Path]:
+    exporter_script = ROOT / "scripts" / "export_ch4_fw2_gallery_appendix.py"
+    python_executable = NOTEBOOK_ENV_PYTHON if NOTEBOOK_ENV_PYTHON.exists() else Path(sys.executable)
+    command = [str(python_executable), str(exporter_script)]
+    completed = subprocess.run(
+        command,
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    written_files: list[Path] = []
+    for line in completed.stdout.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("docs/results/appendix/") and stripped.endswith(".html"):
+            written_files.append(ROOT / stripped)
+    return written_files
 
 
 # ── Records page (meeting notes) ──
@@ -753,6 +801,10 @@ def main() -> None:
     }
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+    appendix_files = _export_gallery_appendix_assets()
+    for appendix_path in appendix_files:
+        print(f"  Exported gallery appendix → {appendix_path.relative_to(ROOT)}")
 
     for page_def in STANDALONE_NOTEBOOK_PAGES:
         pcells = standalone_cells[page_def["id"]]
