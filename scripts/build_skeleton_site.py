@@ -135,6 +135,12 @@ PDF_SUMMARIES: dict[str, str] = {
     "2026_06_01_SSC_Slides.pdf": "SSC slide deck for thesis project presentation",
     "2026_06_05_meeting_notes.pdf": "NMDS interpretation priorities: add site codes and identify taxa driving reference-degraded separation",
     "2026_06_11_meeting_notes.pdf": "Reproduce original PCA and Bray-Curtis polar ordination before extending methods",
+    "2026_06_18_meeting_notes.pdf": "Original PCA reproduction and Bray-Curtis ordination refinements",
+    "2026_06_29_meeting_notes.pdf": "Case-study data, Chapter 4 outputs, and website update planning",
+    "2026_07_02_meeting_notes.pdf": "Draft/site updates and full chapter notebook organization",
+    "2026_07_07_meeting_notes.pdf": "Thesis draft, defense materials, and Records section updates",
+    "2026_07_09_meeting_notes.pdf": "July progress review and final meeting-note upload planning",
+    "2026_07_09_slides.pdf": "July 9 slide deck for thesis progress update",
 }
 
 # ── Page definitions ──
